@@ -1,0 +1,212 @@
+#!/bin/bash
+
+# Todo: add color options in a configuration file, proper documentation, and autocleaning of the feed dir. Other than that, the
+# client and daemon are both more or less feature complete and currently have zero known bugs.
+
+[ -z ${XDG_CONFIG_HOME} ] && XDG_CONFIG_HOME="${HOME}/.config"
+
+# You should probably leave these variables alone, but in the event that you do, using ~/ in these variables causes problems.
+# Use $HOME or an absolute path instead.  Make sure the data dir contains only data. Don't put your subs file or feed in your
+# data dir, for example.
+DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
+FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
+CLIENT_DIR="${XDG_CONFIG_HOME}/ytsm/client"
+
+# Color output. Customize with these color codes: http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x329.html
+BOLD=$(echo -en '\e[1m') # Used for the prompt.
+GREEN=$(echo -en '\e[32m') # Used for the names of videos.
+RED=$(echo -en '\e[1;31m') # Used for errors.
+YELLOW=$(echo -en '\e[93m') # Used for the names of uploaders.
+BOLD_YELLOW=$(echo -en '\e[1;33m') # Used for warnings.
+RESET_COLOR=$(echo -en '\e[00m') # Resets color to the shell default.
+
+DATE=$(date +%Y%m%d)
+
+# If we don't use the full path of the feed file, it is possible that the daemon could run while the client is still up and
+# cause the numbers to not line up with the actual videos (e.g., video four in today's feed might be video six in tomorrow's,
+# so selecting video four would actually select video two because of an updated feed file). I'm using the GNU version, but most
+# other versions (FreeBSD realpath, etc.) should work the same way.
+FEED_FILE=$(realpath ${FEED_DIR}/feed)
+
+# Create various files and folders if not present, report error on missing subs file.
+[ ! -d ${DATA_DIR} ] && mkdir -p ${DATA_DIR} && echo "${BOLD_YELLOW}Making new data dir.${RESET_COLOR}"
+[ ! -d ${FEED_DIR} ] && mkdir -p ${FEED_DIR} && echo "${BOLD_YELLOW}Making new feed dir.${RESET_COLOR}"
+[ ! -d ${CLIENT_DIR} ] && mkdir -p ${CLIENT_DIR} && echo "${BOLD_YELLOW}Making new client dir.${RESET_COLOR}"
+
+# Pull data from config files. For now, that's just resolution info.
+RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf | \
+	awk '/resolution/ {printf $3}')
+
+# Make the lastrun file if not present.
+[[ ! -f "${CLIENT_DIR}/lastrun" ]] && echo ${DATE} > "${CLIENT_DIR}/lastrun"
+
+LAST_DATE=$(cat ${CLIENT_DIR}/lastrun)
+
+# This generates the video list.
+calculate_output() {
+	# Before this, we used sed | cut | sed. This is 38% faster on my system, which makes the script a lot more responsive.
+	# This cuts the feed file down to one line and two columns, then adds color and pretty formatting.
+	OUTPUT=$(echo "${OUTPUT}" && echo -n "${i}. " && sed -e "${i}!d" -e 's/^\([^\t]*\t\)\{2\}//' -e "s/^/${GREEN}/" \
+		-e "s/\\t/ ${YELLOW}\\(by /" -e "s/$/\\)${RESET_COLOR}/" ${FEED_FILE})
+}
+
+
+# Loop until user says quit.
+while [[ ${INPUT} != "q" ]]; do
+
+	echo "${BOLD}Client ready.${RESET_COLOR}"
+	read -p " > " INPUT
+
+	if [[ ${INPUT} = "new" ]]; then
+		# If current date is newer than the one in the lastrun file, print vids until the date is equal.
+		# If not, then say "no new vids. Did you want all vids?"
+		if [[ ${DATE} -gt ${LAST_DATE} ]]; then
+			i=1
+			# Loop over the file and print items, so long as they are newer than or as old as LAST_DATE.
+			while [[ ${LAST_DATE} -lt $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]]; do
+				calculate_output
+				i=$(( i + 1 ))
+			done
+
+			# Prevents null output with no new uploads.
+			if [[ -z ${OUTPUT} ]]; then
+				echo "${RED}No new items. Try typing 'all' instead.${RESET_COLOR}"
+				continue
+			fi
+		else
+			echo "${RED}No new items. Try typing 'all' instead.${RESET_COLOR}"
+			continue
+		fi
+	elif [[ ${INPUT} = "all" ]]; then
+		# Same as above, but dump the whole thing. This is very, very slow with a lot of videos.
+		i=1
+		while [[ $i -le $(wc -l ${FEED_FILE} | cut -d ' ' -f 1) ]]; do
+			calculate_output
+			i=$(( i + 1 ))
+		done
+	elif [[ ${INPUT} = "today" ]]; then
+		i=1
+		while [[ ${DATE} -eq $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]]; do
+			calculate_output
+			i=$(( i + 1 ))
+		done
+	elif [[ ${INPUT} = "week" ]]; then
+		i=1
+		# This code works with GNU date (part of GNU coreutils, which comes with GNU/Linux distros), but will probably
+		# fail with BSD userland. This affects Linuxes with BSD userland (i.e., Linux without GNU), the BSDs and OS X.
+		# If you don't know which date you have, see if 'date --version' mentions GNU coreutils.
+		LAST_WEEK=$(date --date="-1 week" +%Y%m%d)
+		
+		# Extension to while needed to prevent unrecoverable hang when it runs out of lines to index.
+		while [[ ${DATE} -ge ${LAST_WEEK} ]] && [[ ${i} -le $(wc -l ${FEED_FILE} | cut -d ' ' -f 1) ]]; do
+			calculate_output
+			i=$(( i + 1 ))
+		done
+	elif [[ ${INPUT} = "top100" ]]; then
+		# Because processing 1200+ URLs is glacially slow, we have a top 100 fuction.
+		i=1
+		while [[ ${i} -le "100" ]]; do
+			calculate_output
+			i=$(( i + 1 ))
+		done
+	elif [[ ${INPUT} = "bench" ]]; then
+		# This is exactly the same as the top100 function, but with a benchmark built in. Post processing is not
+		# benchmarked, but that's less than 3% of the total time spent calculating on my system, even including the
+		# benchmark calculations (it works out to 226ms vs. 220 ms). I have kept the benchmark contained to the bench
+		# not-a-function-but-you-know-what-I-mean for the sake of simplicity.
+
+		START_TIME=$(date +%s%N)
+		i=1
+		while [[ ${i} -le "100" ]]; do
+			calculate_output
+			i=$(( i + 1 ))
+		done
+		END_TIME=$(date +%s%N)
+
+		# Based on info here: http://stackoverflow.com/questions/3683434/using-time-command-in-bash-script
+		ELAPSED_TIME=$(( END_TIME - START_TIME )) # In nanoseconds.
+		echo "${BOLD}Benchmark completed in ${ELAPSED_TIME}ns (${RED}$((ELAPSED_TIME/1000000))ms${RESET_COLOR}${BOLD})\
+			${RESET_COLOR}"
+
+	elif [[ ${INPUT} = "q" ]]; then
+		break
+	else
+		echo "${RED}Syntax error.${RESET_COLOR}"
+		INPUT=""
+		continue
+	fi
+
+	while [[ ${INPUT} != "q" ]]; do
+
+		# Removes a blank line that appears before the video list. It's a consequence of the method we use to generate
+		# the list.
+		OUTPUT=$(echo "${OUTPUT}" | sed -e '/^$/d')
+
+		# Calculate the range of items to show on each page and the number of pages.
+		[[ -z ${PAGE} ]] && PAGE=1
+		[[ -z ${TOTAL_PAGES} ]] && TOTAL_PAGES=$(echo "{$OUTPUT}" | wc -l) && TOTAL_PAGES=$(( TOTAL_PAGES / 25 ))
+		[[ ${TOTAL_PAGES} = "0" ]] && TOTAL_PAGES=1
+		OUT_MAX=$(( PAGE * 25 ))
+		OUT_MIN=$(( OUT_MAX - 24 ))
+
+		echo "${OUTPUT}" | sed -n ${OUT_MIN},${OUT_MAX}p
+		echo "Page ${PAGE} of $TOTAL_PAGES"
+
+		# Ask for input and run youtube-viewer if necessary.
+		echo "${BOLD}Vid?${RESET_COLOR}"
+		read -p " > " INPUT
+
+		if [[ ${INPUT} = "n" ]]; then
+			PAGE=$(( PAGE + 1 ))
+			if [[ ${PAGE} -gt ${TOTAL_PAGES} ]]; then
+				PAGE=${TOTAL_PAGES}
+			fi
+			continue
+		elif [[ ${INPUT} = "p" ]]; then
+			PAGE=$(( PAGE - 1 ))
+			if [[ ${PAGE} -lt "1" ]]; then
+				PAGE=1
+			fi
+			continue
+		elif [[ ${INPUT} = "reso" ]]; then
+			echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
+			read -p " > " INPUT
+			if [[ ${INPUT} =~ ^[0-9]+$ ]] || [[ ${INPUT} = "original" ]]; then
+				RESOLUTION=${INPUT}
+			elif [[ -z ${INPUT} ]]; then
+				echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
+				sleep 1
+			else
+				echo "${RED}Error: bad resolution.${RESET_COLOR}"
+				sleep 1
+			fi
+			continue
+		elif [[ ${INPUT} != "q" ]]; then
+			if ! [[ ${INPUT} =~ ^[0-9]+$ ]]; then
+				echo "${RED}Syntax error: not a number or 'q'.${RESET_COLOR}"
+				sleep 1
+				continue
+			elif [[ ${INPUT} -gt $(echo "${OUTPUT}" | wc -l) ]]; then
+				echo "${RED}Error: number out of range.${RESET_COLOR}"
+				sleep 1
+				continue
+			fi
+			youtube-viewer -I --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+		else
+			# Reset all relevant variables and return to the first prompt.
+			INPUT=""
+			OUTPUT=""
+
+			PAGE=""
+			TOTAL_PAGES=""
+			PAGE_MIN=""
+			PAGE_MAX=""
+
+			continue 2
+		fi
+	done
+	
+done
+
+# Update the lastrun file. Set the file to a few days ago and comment out this line if you are debugging "new".
+echo ${DATE} > ${CLIENT_DIR}/lastrun

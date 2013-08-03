@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# This daemon is very slow because of quvi and network overhead. It isn't so bad unless there are a lot of new videos to process.
+# Initial setup (25 vids * number of subscriptions) and new subscriptions (+25 vids) are the two times where it gets really slow.
+# Considering this is meant to be run with a cronjob at midnight, I find the wait acceptable.
+
+[[ -z $XDG_CONFIG_HOME ]] && XDG_CONFIG_HOME="$HOME/.config"
+
+# Keep non-data files out of the data dir or you will probably run into weird problems.
+DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
+SUBS_FILE="${XDG_CONFIG_HOME}/ytsm/subscriptions"
+FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
+
+# Warn the user and/or take corrective action in the event of missing files.
+[[ ! -d ${DATA_DIR} ]] && mkdir -p ${DATA_DIR} && echo "Making new data dir." >&2
+[[ ! -d ${FEED_DIR} ]] && mkdir -p ${FEED_DIR} && echo "Making new feed dir." >&2
+[[ ! -a ${SUBS_FILE} ]] && echo "ERROR: make a new subscription file and rerun." >&2
+
+exit
+
+# This date format means we can use regular math and inequalities with no special processing.
+DATE=$(date +%Y%m%d)
+
+for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
+	UPLOADER=$(sed -n ${i}p ${SUBS_FILE})
+
+	# Touch files to prevent errors.
+	[ ! -f ${DATA_DIR}/${UPLOADER} ] && touch "${DATA_DIR}/${UPLOADER}"
+	[ ! -f ${DATA_DIR}/${UPLOADER}_raw ] && touch "${DATA_DIR}/${UPLOADER}_old"
+	[ ! -f ${DATA_DIR}/${UPLOADER}_old ] && touch "${DATA_DIR}/${UPLOADER}_old"
+
+	[ -f ${DATA_DIR}/${UPLOADER} ] || echo "${UPLOADER} seems to be new."
+
+	# Relocate old files if need be.
+	[ -f ${DATA_DIR}/${UPLOADER} ] && mv ${DATA_DIR}/${UPLOADER} ${DATA_DIR}/${UPLOADER}_old
+	echo -n "${UPLOADER}: " && umph -t u $UPLOADER > ${DATA_DIR}/${UPLOADER}_raw
+
+	# Status report:
+	echo -n "${UPLOADER}: "
+
+	# Parsing individual videos from $UPLOADER.
+	for j in $(seq 1 $(wc -l ${DATA_DIR}/${UPLOADER}_raw | cut -d ' ' -f 1)); do
+
+		# If vid is not in old file, then process the new URLs. We'll concatenate the new and old entries later.
+		if [[ -z $(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old) ]]; then
+			URL=$(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw)
+
+			# I am passing the QUVI_HOME variable to prevent quvi from using an exec option that may be present in
+			# the user's .quvirc. There should not be a config present in $FEED_DIR unless you use an HTTP proxy.
+			NAME=$(QUVI_HOME="${XDG_CONFIG_HOME}/ytsm" quvi "${URL}" --verbosity mute --exec="echo %t")
+			
+			echo -e "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
+		fi
+
+		# Prints a dot for each video processed.
+		echo -n "."
+	done
+
+	# Add a \n after the line of dots. Matches umph's output.
+	echo " done."
+
+	# cat and replace the regular file. It sometimes complains for no reason, so errors are sent to /dev/null
+	cat ${DATA_DIR}/${UPLOADER} ${DATA_DIR}/${UPLOADER}_old > ${DATA_DIR}/${UPLOADER}_concatenated 2>/dev/null
+	mv ${DATA_DIR}/${UPLOADER}_concatenated ${DATA_DIR}/${UPLOADER}
+	rm ${DATA_DIR}/${UPLOADER}_old ${DATA_DIR}/${UPLOADER}_raw
+done
+
+# This sorts big numbers first, which means newer items come first. A malformed data file will probably screw this up.
+sort -n -r ${DATA_DIR}/* > ${FEED_DIR}/feed-${DATE} || echo "Sort failed. Check for malformed data files in ${DATA_DIR}."
+[[ -a ${FEED_DIR}/feed ]] && unlink ${FEED_DIR}/feed
+ln -s ${FEED_DIR}/feed-${DATE} ${FEED_DIR}/feed
