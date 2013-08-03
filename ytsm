@@ -44,11 +44,16 @@ LAST_DATE=$(cat ${CLIENT_DIR}/lastrun)
 
 # This generates the video list.
 calculate_output() {
-	# Before this, we used sed | cut | sed. This is 38% faster on my system, which makes the script a lot more responsive.
 	# This cuts the feed file down to one line and two columns, then adds color and pretty formatting.
 	OUTPUT=$(echo "${OUTPUT}" && echo -n "${i}. " && sed -e "${i}!d" -e 's/^\([^\t]*\t\)\{2\}//' -e "s/^/${GREEN}/" \
 		-e "s/\\t/ ${YELLOW}\\(by /" -e "s/$/\\)${RESET_COLOR}/" ${FEED_FILE})
 }
+
+# Add a basic help screen.
+if [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
+	echo "Run ytsm without an argument and type \"help\" at the prompt."
+	exit
+fi
 
 
 # Loop until user says quit.
@@ -127,7 +132,20 @@ while [[ ${INPUT} != "q" ]]; do
 		ELAPSED_TIME=$(( END_TIME - START_TIME )) # In nanoseconds.
 		echo "${BOLD}Benchmark completed in ${ELAPSED_TIME}ns (${RED}$((ELAPSED_TIME/1000000))ms${RESET_COLOR}${BOLD})\
 			${RESET_COLOR}"
-
+	elif [[ ${INPUT} = "help" ]]; then
+		echo "Valid commands:"
+		echo " - new: print new videos."
+		echo " - all: print all videos. This can be very slow."
+		echo " - today: print all videos fetched today."
+		echo " - week: print all videos fetched this week."
+		echo " - top100: print the 100 most recently fetched videos."
+		echo " - bench: run top100 with the inclusion of a simple benchmark."
+		echo " - help: print this help."
+		echo " - q: update the lastrun file and exit."
+		echo " - Control-C: exit without updating the lastrun file."
+		echo ""
+		echo "Further help is available at the vid prompt."
+		continue
 	elif [[ ${INPUT} = "q" ]]; then
 		break
 	else
@@ -180,6 +198,21 @@ while [[ ${INPUT} != "q" ]]; do
 				echo "${RED}Error: bad resolution.${RESET_COLOR}"
 				sleep 1
 			fi
+			continue
+		elif [[ ${INPUT} = "help" ]]; then
+			echo "Vid prompt help."
+			echo ""
+			echo "Valid commands:"
+			echo " - n: display the next page."
+			echo " - p: display the previous page."
+			echo " - reso: change the resolution youtube-viewer requests from YouTube. Pick one of"
+			echo "         the following: original, 1080, 720, 480, 360, 340, 240, 180, 144."
+			echo " - help: print this help."
+			echo " - q: return to the previous prompt."
+			echo " - Control-C: exit without updating the lastrun file."
+			echo ""
+			echo "Press Enter to continue." # We do this so that the help isn't lost above the list of videos.
+			read -p ""
 			continue
 		elif [[ ${INPUT} != "q" ]]; then
 			if ! [[ ${INPUT} =~ ^[0-9]+$ ]]; then
