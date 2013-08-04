@@ -189,7 +189,9 @@ while [[ ${INPUT} != "q" ]]; do
 		elif [[ ${INPUT} = "reso" ]]; then
 			echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
 			read -p " > " INPUT
-			if [[ ${INPUT} =~ ^[0-9]+$ ]] || [[ ${INPUT} = "original" ]]; then
+			if [[ ${INPUT} = "original" ]] || [[ ${INPUT} = "1080" ]] || [[ ${INPUT} = "720" ]] \
+				|| [[ ${INPUT} = "480" ]] || [[ ${INPUT} = "360" ]] || [[ ${INPUT} = "340" ]] \
+				|| [[ ${INPUT} = "240" ]] || [[ ${INPUT} = "180" ]] || [[ ${INPUT} = "144" ]]; then
 				RESOLUTION=${INPUT}
 			elif [[ -z ${INPUT} ]]; then
 				echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
