@@ -16,8 +16,6 @@ FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
 [[ ! -d ${FEED_DIR} ]] && mkdir -p ${FEED_DIR} && echo "Making new feed dir." >&2
 [[ ! -a ${SUBS_FILE} ]] && echo "ERROR: make a new subscription file and rerun." >&2
 
-exit
-
 # This date format means we can use regular math and inequalities with no special processing.
 DATE=$(date +%Y%m%d)
 
