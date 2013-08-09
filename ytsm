@@ -172,7 +172,16 @@ while [[ ${INPUT} != "q" ]]; do
 
 		# Ask for input and run youtube-viewer if necessary.
 		echo "${BOLD}Vid?${RESET_COLOR}"
-		read -p " > " INPUT
+		read -p " > " INPUT INPUT_ARG1
+
+		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
+		if [[ ${INPUT_ARG1} = "info" ]]; then
+			youtube-viewer -I -i $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			echo ""
+			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
+			read -p ""
+			continue
+		fi
 
 		if [[ ${INPUT} = "n" ]]; then
 			PAGE=$(( PAGE + 1 ))
@@ -205,6 +214,8 @@ while [[ ${INPUT} != "q" ]]; do
 			echo "Vid prompt help."
 			echo ""
 			echo "Valid commands:"
+			echo " - <number>: play a video. <number> refers to an item number in the vid list."
+			echo " - <number> info: query youtube-viewer for info on video <number>."
 			echo " - n: display the next page."
 			echo " - p: display the previous page."
 			echo " - reso: change the resolution youtube-viewer requests from YouTube. Pick one of"
@@ -213,7 +224,8 @@ while [[ ${INPUT} != "q" ]]; do
 			echo " - q: return to the previous prompt."
 			echo " - Control-C: exit without updating the lastrun file."
 			echo ""
-			echo "Press Enter to continue." # We do this so that the help isn't lost above the list of videos.
+			# We add a prompt here so that the help isn't lost above the list of videos.
+			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p ""
 			continue
 		elif [[ ${INPUT} != "q" ]]; then
