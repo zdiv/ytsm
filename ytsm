@@ -181,6 +181,11 @@ while [[ ${INPUT} != "q" ]]; do
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p ""
 			continue
+		elif [[ ${INPUT_ARG1} = "comments" ]]; then
+			# No "Press Enter" prompt on this one because yv does it by itself.
+			youtube-viewer -I --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			echo ""
+			continue
 		fi
 
 		if [[ ${INPUT} = "n" ]]; then
@@ -216,6 +221,7 @@ while [[ ${INPUT} != "q" ]]; do
 			echo "Valid commands:"
 			echo " - <number>: play a video. <number> refers to an item number in the vid list."
 			echo " - <number> info: query youtube-viewer for info on video <number>."
+			echo " - <number> comments: use youtube-viewer to view comments for video <number>."
 			echo " - n: display the next page."
 			echo " - p: display the previous page."
 			echo " - reso: change the resolution youtube-viewer requests from YouTube. Pick one of"
