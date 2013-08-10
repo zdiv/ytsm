@@ -172,7 +172,7 @@ while [[ ${INPUT} != "q" ]]; do
 
 		# Ask for input and run youtube-viewer if necessary.
 		echo "${BOLD}Vid?${RESET_COLOR}"
-		read -p " > " INPUT INPUT_ARG1
+		read -p " > " INPUT INPUT_ARG1 INPUT_ARG2
 
 		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
 		if [[ ${INPUT_ARG1} = "info" ]]; then
@@ -184,6 +184,16 @@ while [[ ${INPUT} != "q" ]]; do
 		elif [[ ${INPUT_ARG1} = "comments" ]]; then
 			# No "Press Enter" prompt on this one because yv does it by itself.
 			youtube-viewer -I --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			echo ""
+			continue
+		elif [[ ${INPUT_ARG1} = "author" ]] || [[ ${INPUT_ARG1} = "a" ]]; then
+			# If the user asks, display playlists by the author of the chosen playlists. If the user doesn't ask,
+			# show the author's main video page instead.
+			if [[ ${INPUT_ARG2} = "playlists" ]] || [[ ${INPUT_ARG2} = "p" ]]; then
+				youtube-viewer -up $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
+			else
+				youtube-viewer -u $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
+			fi
 			echo ""
 			continue
 		fi
@@ -222,6 +232,8 @@ while [[ ${INPUT} != "q" ]]; do
 			echo " - <number>: play a video. <number> refers to an item number in the vid list."
 			echo " - <number> info: query youtube-viewer for info on video <number>."
 			echo " - <number> comments: use youtube-viewer to view comments for video <number>."
+			echo " - <number> author: display videos by the author of video <number>."
+			echo "        Append \"playlists\" or \"p\" to display playlists instead of uploads."
 			echo " - n: display the next page."
 			echo " - p: display the previous page."
 			echo " - reso: change the resolution youtube-viewer requests from YouTube. Pick one of"
