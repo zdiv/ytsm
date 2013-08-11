@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Todo: add color options in a configuration file, proper documentation, and autocleaning of the feed dir. Other than that, the
-# client and daemon are both more or less feature complete and currently have zero known bugs.
-
+# As per freedesktop.org's XDG Base Directory Specification, all config files are stored in $XDG_CONFIG_HOME when set, or
+# $HOME/.config when it isn't set. Theoretically, this variable could be used to maintain multiple feed files. This would be
+# useful in the event that the user has two YouTube accounts they would prefer to keep separate. Technically, most of what I
+# store here should probably go into $XDG_DATA_HOME (~/.local/share). We'll fix that eventually.
 [ -z ${XDG_CONFIG_HOME} ] && XDG_CONFIG_HOME="${HOME}/.config"
 
-# You should probably leave these variables alone, but in the event that you do, using ~/ in these variables causes problems.
-# Use $HOME or an absolute path instead.  Make sure the data dir contains only data. Don't put your subs file or feed in your
-# data dir, for example.
+# You should probably leave these variables alone, but in the event that you do mess with them, using ~/ in these variables
+# causes problems.  Use $HOME or an absolute path instead.  Make sure the data dir contains only data. Don't put your subs file
+# or feed in your data dir, for example.
 DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
 FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
 CLIENT_DIR="${XDG_CONFIG_HOME}/ytsm/client"
@@ -24,16 +25,17 @@ DATE=$(date +%Y%m%d)
 
 # If we don't use the full path of the feed file, it is possible that the daemon could run while the client is still up and
 # cause the numbers to not line up with the actual videos (e.g., video four in today's feed might be video six in tomorrow's,
-# so selecting video four would actually select video two because of an updated feed file). I'm using the GNU version, but most
-# other versions (FreeBSD realpath, etc.) should work the same way.
+# so selecting video four would actually select video two because of an updated feed file). I'm using the GNU version of
+# realpath, but most other versions (FreeBSD realpath, etc.) should work the same way.
 FEED_FILE=$(realpath ${FEED_DIR}/feed)
 
-# Create various files and folders if not present, report error on missing subs file.
-[ ! -d ${DATA_DIR} ] && mkdir -p ${DATA_DIR} && echo "${BOLD_YELLOW}Making new data dir.${RESET_COLOR}"
-[ ! -d ${FEED_DIR} ] && mkdir -p ${FEED_DIR} && echo "${BOLD_YELLOW}Making new feed dir.${RESET_COLOR}"
-[ ! -d ${CLIENT_DIR} ] && mkdir -p ${CLIENT_DIR} && echo "${BOLD_YELLOW}Making new client dir.${RESET_COLOR}"
+# Report an error and abort execution on a missing feed file.
+if [[ ! -f ${FEED_FILE} ]]; then
+	echo "${RED}Error: no feed file present in ${FEED_DIR}. You probably haven't configured ytsm-cronjob yet.${RESET_COLOR}"
+	exit 1
+fi
 
-# Pull data from config files. For now, that's just resolution info.
+# Pull data from config files. For now, that's just resolution info from youtube-viewer.
 RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf | \
 	awk '/resolution/ {printf $3}')
 
@@ -42,14 +44,14 @@ RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtu
 
 LAST_DATE=$(cat ${CLIENT_DIR}/lastrun)
 
-# This generates the video list.
+# This function generates the video list.
 calculate_output() {
 	# This cuts the feed file down to one line and two columns, then adds color and pretty formatting.
 	OUTPUT=$(echo "${OUTPUT}" && echo -n "${i}. " && sed -e "${i}!d" -e 's/^\([^\t]*\t\)\{2\}//' -e "s/^/${GREEN}/" \
 		-e "s/\\t/ ${YELLOW}\\(by /" -e "s/$/\\)${RESET_COLOR}/" ${FEED_FILE})
 }
 
-# Add a basic help screen.
+# This is a basic help screen. We should probably expand on it in the future.
 if [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
 	echo "Run ytsm without an argument and type \"help\" at the prompt."
 	exit
@@ -59,7 +61,8 @@ fi
 # Loop until user says quit.
 while [[ ${INPUT} != "q" ]]; do
 
-	echo "${BOLD}Client ready.${RESET_COLOR}"
+	# Grab user input. This prompt could probably be a bit more user friendly.
+	echo "${BOLD}ytsm ready.${RESET_COLOR}"
 	read -p " > " INPUT
 
 	if [[ ${INPUT} = "new" ]]; then
@@ -75,21 +78,23 @@ while [[ ${INPUT} != "q" ]]; do
 
 			# Prevents null output with no new uploads.
 			if [[ -z ${OUTPUT} ]]; then
-				echo "${RED}No new items. Try typing 'all' instead.${RESET_COLOR}"
+				echo "${RED}No new items.${RESET_COLOR} Maybe you want 'today' or 'top100' instead?\
+					${RESET_COLOR}"
 				continue
 			fi
 		else
-			echo "${RED}No new items. Try typing 'all' instead.${RESET_COLOR}"
+			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'today' or 'top100' instead?${RESET_COLOR}"
 			continue
 		fi
 	elif [[ ${INPUT} = "all" ]]; then
-		# Same as above, but dump the whole thing. This is very, very slow with a lot of videos.
+		# Same as above, but dump the entire feed file. This is very, very slow with a lot of videos.
 		i=1
 		while [[ $i -le $(wc -l ${FEED_FILE} | cut -d ' ' -f 1) ]]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
 	elif [[ ${INPUT} = "today" ]]; then
+		# Dumps only videos with today's date in the feed file.
 		i=1
 		while [[ ${DATE} -eq $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]]; do
 			calculate_output
@@ -102,7 +107,9 @@ while [[ ${INPUT} != "q" ]]; do
 		# If you don't know which date you have, see if 'date --version' mentions GNU coreutils.
 		LAST_WEEK=$(date --date="-1 week" +%Y%m%d)
 		
-		# Extension to while needed to prevent unrecoverable hang when it runs out of lines to index.
+		# Extension to while needed to prevent unrecoverable hang when it runs out of lines to index. It essentially
+		# compares the number of videos processed with the line count of the feed file to make sure it isn't processing
+		# nothing.
 		while [[ ${DATE} -ge ${LAST_WEEK} ]] && [[ ${i} -le $(wc -l ${FEED_FILE} | cut -d ' ' -f 1) ]]; do
 			calculate_output
 			i=$(( i + 1 ))
@@ -149,11 +156,13 @@ while [[ ${INPUT} != "q" ]]; do
 	elif [[ ${INPUT} = "q" ]]; then
 		break
 	else
-		echo "${RED}Syntax error.${RESET_COLOR}"
+		echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
 		INPUT=""
 		continue
 	fi
 
+	# After the user picks one of ytsm's main operations, the output is paginated and displayed, and another prompt is
+	# displayed that asks what ytsm should do next.
 	while [[ ${INPUT} != "q" ]]; do
 
 		# Removes a blank line that appears before the video list. It's a consequence of the method we use to generate
@@ -168,7 +177,7 @@ while [[ ${INPUT} != "q" ]]; do
 		OUT_MIN=$(( OUT_MAX - 24 ))
 
 		echo "${OUTPUT}" | sed -n ${OUT_MIN},${OUT_MAX}p
-		echo "Page ${PAGE} of $TOTAL_PAGES"
+		echo "Page ${PAGE} of ${TOTAL_PAGES}"
 
 		# Ask for input and run youtube-viewer if necessary.
 		echo "${BOLD}Vid?${RESET_COLOR}"
@@ -176,41 +185,45 @@ while [[ ${INPUT} != "q" ]]; do
 
 		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
 		if [[ ${INPUT_ARG1} = "info" ]]; then
-			youtube-viewer -I -i $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --resolution=${RESOLUTION} --non-interactive --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p ""
 			continue
 		elif [[ ${INPUT_ARG1} = "comments" ]]; then
 			# No "Press Enter" prompt on this one because yv does it by itself.
-			youtube-viewer -I --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --resolution=${RESOLUTION} --non-interactive --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			continue
 		elif [[ ${INPUT_ARG1} = "author" ]] || [[ ${INPUT_ARG1} = "a" ]]; then
 			# If the user asks, display playlists by the author of the chosen playlists. If the user doesn't ask,
 			# show the author's main video page instead.
 			if [[ ${INPUT_ARG2} = "playlists" ]] || [[ ${INPUT_ARG2} = "p" ]]; then
-				youtube-viewer -up $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
+				youtube-viewer --resolution=${RESOLUTION} --user-pl $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
 			else
-				youtube-viewer -u $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
+				youtube-viewer --resolution=${RESOLUTION} --user $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
 			fi
 			echo ""
 			continue
 		fi
 
+		# These commands are separate from the above because they don't rely on secondary arguments (INPUT_ARG1, etc.).
 		if [[ ${INPUT} = "n" ]]; then
+			# Go to next page.
 			PAGE=$(( PAGE + 1 ))
 			if [[ ${PAGE} -gt ${TOTAL_PAGES} ]]; then
 				PAGE=${TOTAL_PAGES}
 			fi
 			continue
 		elif [[ ${INPUT} = "p" ]]; then
+			# Go to previous page.
 			PAGE=$(( PAGE - 1 ))
 			if [[ ${PAGE} -lt "1" ]]; then
 				PAGE=1
 			fi
 			continue
 		elif [[ ${INPUT} = "reso" ]]; then
+			# This is a resolution picker. The default comes from the user's youtube-viewer.conf.
 			echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
 			read -p " > " INPUT
 			if [[ ${INPUT} = "original" ]] || [[ ${INPUT} = "1080" ]] || [[ ${INPUT} = "720" ]] \
@@ -248,7 +261,7 @@ while [[ ${INPUT} != "q" ]]; do
 			continue
 		elif [[ ${INPUT} != "q" ]]; then
 			if ! [[ ${INPUT} =~ ^[0-9]+$ ]]; then
-				echo "${RED}Syntax error: not a number or 'q'.${RESET_COLOR}"
+				echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
 				sleep 1
 				continue
 			elif [[ ${INPUT} -gt $(echo "${OUTPUT}" | wc -l) ]]; then
@@ -256,7 +269,7 @@ while [[ ${INPUT} != "q" ]]; do
 				sleep 1
 				continue
 			fi
-			youtube-viewer -I --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --non-interactive --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 		else
 			# Reset all relevant variables and return to the first prompt.
 			INPUT=""
