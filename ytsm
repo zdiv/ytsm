@@ -59,13 +59,13 @@ fi
 
 
 # Loop until user says quit.
-while [[ ${INPUT} != "q" ]]; do
+while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 
 	# Grab user input. This prompt could probably be a bit more user friendly.
 	echo "${BOLD}ytsm ready.${RESET_COLOR}"
 	read -p " > " INPUT
 
-	if [[ ${INPUT} = "new" ]]; then
+	if [[ ${INPUT} = "new" ]] || [[ ${INPUT} = "n" ]]; then
 		# If current date is newer than the one in the lastrun file, print vids until the date is equal.
 		# If not, then say "no new vids. Did you want all vids?"
 		if [[ ${DATE} -gt ${LAST_DATE} ]]; then
@@ -86,21 +86,21 @@ while [[ ${INPUT} != "q" ]]; do
 			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'today' or 'top100' instead?${RESET_COLOR}"
 			continue
 		fi
-	elif [[ ${INPUT} = "all" ]]; then
+	elif [[ ${INPUT} = "all" ]] || [[ ${INPUT} = "a" ]]; then
 		# Same as above, but dump the entire feed file. This is very, very slow with a lot of videos.
 		i=1
 		while [[ $i -le $(wc -l ${FEED_FILE} | cut -d ' ' -f 1) ]]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
-	elif [[ ${INPUT} = "today" ]]; then
+	elif [[ ${INPUT} = "today" ]] || [[ ${INPUT} = "t" ]]; then
 		# Dumps only videos with today's date in the feed file.
 		i=1
 		while [[ ${DATE} -eq $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
-	elif [[ ${INPUT} = "week" ]]; then
+	elif [[ ${INPUT} = "week" ]] || [[ ${INPUT} = "w" ]]; then
 		i=1
 		# This code works with GNU date (part of GNU coreutils, which comes with GNU/Linux distros), but will probably
 		# fail with BSD userland. This affects Linuxes with BSD userland (i.e., Linux without GNU), the BSDs and OS X.
@@ -114,14 +114,14 @@ while [[ ${INPUT} != "q" ]]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
-	elif [[ ${INPUT} = "top100" ]]; then
+	elif [[ ${INPUT} = "top100" ]] || [[ ${INPUT} = "t100" ]]; then
 		# Because processing 1200+ URLs is glacially slow, we have a top 100 fuction.
 		i=1
 		while [[ ${i} -le "100" ]]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
-	elif [[ ${INPUT} = "bench" ]]; then
+	elif [[ ${INPUT} = "bench" ]] || [[ ${INPUT} = "b" ]]; then
 		# This is exactly the same as the top100 function, but with a benchmark built in. Post processing is not
 		# benchmarked, but that's less than 3% of the total time spent calculating on my system, even including the
 		# benchmark calculations (it works out to 226ms vs. 220 ms). I have kept the benchmark contained to the bench
@@ -139,21 +139,29 @@ while [[ ${INPUT} != "q" ]]; do
 		ELAPSED_TIME=$(( END_TIME - START_TIME )) # In nanoseconds.
 		echo "${BOLD}Benchmark completed in ${ELAPSED_TIME}ns (${RED}$((ELAPSED_TIME/1000000))ms${RESET_COLOR}${BOLD})\
 			${RESET_COLOR}"
-	elif [[ ${INPUT} = "help" ]]; then
+	elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
 		echo "Valid commands:"
 		echo " - new: print new videos."
+		echo "        Synonym: n"
 		echo " - all: print all videos. This can be very slow."
+		echo "        Synonym: a"
 		echo " - today: print all videos fetched today."
+		echo "        Synonym: t"
 		echo " - week: print all videos fetched this week."
+		echo "        Synonym: w"
 		echo " - top100: print the 100 most recently fetched videos."
+		echo "        Synonym: t100"
 		echo " - bench: run top100 with the inclusion of a simple benchmark."
+		echo "        Synonym: b"
 		echo " - help: print this help."
-		echo " - q: update the lastrun file and exit."
+		echo "        Synonym: h"
+		echo " - quit: update the lastrun file and exit."
+		echo "        Synonym: q"
 		echo " - Control-C: exit without updating the lastrun file."
 		echo ""
 		echo "Further help is available at the vid prompt."
 		continue
-	elif [[ ${INPUT} = "q" ]]; then
+	elif [[ ${INPUT} = "q" ]] || [[ ${INPUT} = "quit" ]]; then
 		break
 	else
 		echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
@@ -163,7 +171,7 @@ while [[ ${INPUT} != "q" ]]; do
 
 	# After the user picks one of ytsm's main operations, the output is paginated and displayed, and another prompt is
 	# displayed that asks what ytsm should do next.
-	while [[ ${INPUT} != "q" ]]; do
+	while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 
 		# Removes a blank line that appears before the video list. It's a consequence of the method we use to generate
 		# the list.
@@ -184,13 +192,13 @@ while [[ ${INPUT} != "q" ]]; do
 		read -p " > " INPUT INPUT_ARG1 INPUT_ARG2
 
 		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
-		if [[ ${INPUT_ARG1} = "info" ]]; then
+		if [[ ${INPUT_ARG1} = "info" ]] || [[ ${INPUT_ARG1} = "i" ]]; then
 			youtube-viewer --resolution=${RESOLUTION} --non-interactive --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p ""
 			continue
-		elif [[ ${INPUT_ARG1} = "comments" ]]; then
+		elif [[ ${INPUT_ARG1} = "comments" ]] || [[ ${INPUT_ARG1} = "c" ]]; then
 			# No "Press Enter" prompt on this one because yv does it by itself.
 			youtube-viewer --resolution=${RESOLUTION} --non-interactive --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
@@ -208,21 +216,21 @@ while [[ ${INPUT} != "q" ]]; do
 		fi
 
 		# These commands are separate from the above because they don't rely on secondary arguments (INPUT_ARG1, etc.).
-		if [[ ${INPUT} = "n" ]]; then
+		if [[ ${INPUT} = "n" ]] || [[ ${INPUT} = "next" ]]; then
 			# Go to next page.
 			PAGE=$(( PAGE + 1 ))
 			if [[ ${PAGE} -gt ${TOTAL_PAGES} ]]; then
 				PAGE=${TOTAL_PAGES}
 			fi
 			continue
-		elif [[ ${INPUT} = "p" ]]; then
+		elif [[ ${INPUT} = "p" ]] || [[ ${INPUT} = "previous" ]]; then
 			# Go to previous page.
 			PAGE=$(( PAGE - 1 ))
 			if [[ ${PAGE} -lt "1" ]]; then
 				PAGE=1
 			fi
 			continue
-		elif [[ ${INPUT} = "reso" ]]; then
+		elif [[ ${INPUT} = "reso" ]] || [[ ${INPUT} = "r" ]]; then
 			# This is a resolution picker. The default comes from the user's youtube-viewer.conf.
 			echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
 			read -p " > " INPUT
@@ -238,39 +246,36 @@ while [[ ${INPUT} != "q" ]]; do
 				sleep 1
 			fi
 			continue
-		elif [[ ${INPUT} = "help" ]]; then
+		elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
 			echo "Vid prompt help."
 			echo ""
 			echo "Valid commands:"
 			echo " - <number>: play a video. <number> refers to an item number in the vid list."
 			echo " - <number> info: query youtube-viewer for info on video <number>."
+			echo "        Synonym: <number> i"
 			echo " - <number> comments: use youtube-viewer to view comments for video <number>."
+			echo "        Synonym: <number> info"
 			echo " - <number> author: display videos by the author of video <number>."
 			echo "        Append \"playlists\" or \"p\" to display playlists instead of uploads."
-			echo " - n: display the next page."
+			echo "        Synonym: \"<number> a\", \"<number> a p\""
+			echo " - next: display the next page."
+			echo "        Synonym: n"
 			echo " - p: display the previous page."
+			echo "        Synonym: p"
 			echo " - reso: change the resolution youtube-viewer requests from YouTube. Pick one of"
 			echo "         the following: original, 1080, 720, 480, 360, 340, 240, 180, 144."
+			echo "        Synonym: r"
 			echo " - help: print this help."
-			echo " - q: return to the previous prompt."
+			echo "        Synonym: h"
+			echo " - quit: return to the previous prompt."
+			echo "        Synonym: q"
 			echo " - Control-C: exit without updating the lastrun file."
 			echo ""
 			# We add a prompt here so that the help isn't lost above the list of videos.
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p ""
 			continue
-		elif [[ ${INPUT} != "q" ]]; then
-			if ! [[ ${INPUT} =~ ^[0-9]+$ ]]; then
-				echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
-				sleep 1
-				continue
-			elif [[ ${INPUT} -gt $(echo "${OUTPUT}" | wc -l) ]]; then
-				echo "${RED}Error: number out of range.${RESET_COLOR}"
-				sleep 1
-				continue
-			fi
-			youtube-viewer --non-interactive --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
-		else
+		elif [[ ${INPUT} = "q" ]] || [[ ${INPUT} = "quit" ]]; then
 			# Reset all relevant variables and return to the first prompt.
 			INPUT=""
 			OUTPUT=""
@@ -281,6 +286,17 @@ while [[ ${INPUT} != "q" ]]; do
 			PAGE_MAX=""
 
 			continue 2
+		else
+			if ! [[ ${INPUT} =~ ^[0-9]+$ ]]; then
+				echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
+				sleep 1
+				continue
+			elif [[ ${INPUT} -gt $(echo "${OUTPUT}" | wc -l) ]]; then
+				echo "${RED}Error: number out of range.${RESET_COLOR}"
+				sleep 1
+				continue
+			fi
+			youtube-viewer --non-interactive --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 		fi
 	done
 	
