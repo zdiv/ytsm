@@ -144,6 +144,12 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		ELAPSED_TIME=$(( END_TIME - START_TIME )) # In nanoseconds.
 		echo "${BOLD}Benchmark completed in ${ELAPSED_TIME}ns (${RED}$((ELAPSED_TIME/1000000))ms${RESET_COLOR}${BOLD})\
 			${RESET_COLOR}"
+	elif [[ ${INPUT} = yv* ]] || [[ ${INPUT} = youtube-viewer* ]]; then
+		# Spawn a youtube-viewer instance with user-specified arguments. Note that the value checks in the above line are
+		# not in quotes so that pash uses pattern matching rather than literal matching.
+		YV_COMMAND=$(echo ${INPUT} | sed 's/^yv/youtube-viewer/')
+		$(echo ${YV_COMMAND})
+		continue
 	elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
 		echo "Valid commands:"
 		echo " - new: print new videos."
@@ -158,6 +164,8 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		echo "        Synonym: t100"
 		echo " - bench: run top100 with the inclusion of a simple benchmark."
 		echo "        Synonym: b"
+		echo " - youtube-viewer: run a yv instance with provided arguments."
+		echo "        Synonym: yv"
 		echo " - help: print this help."
 		echo "        Synonym: h"
 		echo " - quit: update the lastrun file and exit."
