@@ -238,6 +238,7 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 			# Pretty simple command. Download the file to $PWD if the user asks us to. Eventually, we should add support for
 			# yv --download --ffmpeg-command.
 			youtube-viewer --non-interactive --download $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			continue
 		fi
 
 		# These commands are separate from the above because they don't rely on secondary arguments (INPUT_ARG1, etc.).
