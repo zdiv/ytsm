@@ -234,6 +234,10 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 			fi
 			echo ""
 			continue
+		elif [[ ${INPUT_ARG1} = "download" ]] || [[ ${INPUT_ARG1} = "d" ]]; then
+			# Pretty simple command. Download the file to $PWD if the user asks us to. Eventually, we should add support for
+			# yv --download --ffmpeg-command.
+			youtube-viewer --non-interactive --download $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 		fi
 
 		# These commands are separate from the above because they don't rely on secondary arguments (INPUT_ARG1, etc.).
@@ -275,10 +279,12 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 			echo " - <number> info: query youtube-viewer for info on video <number>."
 			echo "        Synonym: <number> i"
 			echo " - <number> comments: use youtube-viewer to view comments for video <number>."
-			echo "        Synonym: <number> info"
+			echo "        Synonym: <number> c"
 			echo " - <number> author: display videos by the author of video <number>."
 			echo "        Append \"playlists\" or \"p\" to display playlists instead of uploads."
 			echo "        Synonym: \"<number> a\", \"<number> a p\""
+			echo " - <number> download: download the video to the current directory."
+			echo "        Synonym: <number> d"
 			echo " - next: display the next page."
 			echo "        Synonym: n"
 			echo " - p: display the previous page."
