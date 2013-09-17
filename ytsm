@@ -150,6 +150,12 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		YV_COMMAND=$(echo ${INPUT} | sed 's/^yv/youtube-viewer/')
 		$(echo ${YV_COMMAND})
 		continue
+	elif [[ ${INPUT} = "update" ]] || [[ ${INPUT} = "u" ]]; then
+		# Forces ytsm to reread the feed file and update it's internal date. This is possibly useful if ytsm was left
+		# running overnight, because ytsm would write the previous date to disk when updating the lastrun file.
+		DATE=$(date +%Y%m%d)
+		FEED_FILE=$(realpath ${FEED_DIR}/feed)
+		continue
 	elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
 		echo "Valid commands:"
 		echo " - new: print new videos."
@@ -166,6 +172,8 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		echo "        Synonym: b"
 		echo " - youtube-viewer: run a yv instance with provided arguments."
 		echo "        Synonym: yv"
+		echo " - update: force an update of the date and feed file"
+		echo "        Synonym: u"
 		echo " - help: print this help."
 		echo "        Synonym: h"
 		echo " - quit: update the lastrun file and exit."
