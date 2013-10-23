@@ -42,7 +42,7 @@ RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtu
 # youtube-viewer's --non-interactive flag was removed in yv 3.0.8 and replaced with a global variable set in the configuration
 # file. If that variable is not set, we warn the user that the script will work, but that transitions between yv and ytsm
 # won't be quite right.
-if ! egrep -q '.*[^#].*interactive\s+=>\s+0' youtube-viewer.conf; then
+if ! egrep -q '.*[^#].*interactive\s+=>\s+0' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf; then
 	echo ""
 	echo "${YELLOW}WARNING${RESET_COLOR}: 'interactive => 0' is not set in youtube-viewer.conf. ytsm will work"
 	echo "as expected, but transitions between ytsm and youtube-viewer will not be"
