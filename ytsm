@@ -39,6 +39,17 @@ fi
 RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf | \
 	awk '/resolution/ {printf $3}')
 
+# youtube-viewer's --non-interactive flag was removed in yv 3.0.8 and replaced with a global variable set in the configuration
+# file. If that variable is not set, we warn the user that the script will work, but that transitions between yv and ytsm
+# won't be quite right.
+if ! egrep -q '.*[^#].*interactive\s+=>\s+0' youtube-viewer.conf; then
+	echo ""
+	echo "${YELLOW}WARNING${RESET_COLOR}: 'interactive => 0' is not set in youtube-viewer.conf. ytsm will work"
+	echo "as expected, but transitions between ytsm and youtube-viewer will not be"
+	echo "completely seamless. This option is only present in youtube-viewer 3.0.8+."
+	echo ""
+fi
+
 # Make the lastrun file if not present.
 [[ ! -f "${CLIENT_DIR}/lastrun" ]] && echo ${DATE} > "${CLIENT_DIR}/lastrun"
 
@@ -214,14 +225,14 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 
 		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
 		if [[ ${INPUT_ARG1} = "info" ]] || [[ ${INPUT_ARG1} = "i" ]]; then
-			youtube-viewer --resolution=${RESOLUTION} --non-interactive --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --resolution=${RESOLUTION} --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p ""
 			continue
 		elif [[ ${INPUT_ARG1} = "comments" ]] || [[ ${INPUT_ARG1} = "c" ]]; then
 			# No "Press Enter" prompt on this one because yv does it by itself.
-			youtube-viewer --resolution=${RESOLUTION} --non-interactive --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --resolution=${RESOLUTION} --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			continue
 		elif [[ ${INPUT_ARG1} = "author" ]] || [[ ${INPUT_ARG1} = "a" ]]; then
@@ -237,7 +248,7 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		elif [[ ${INPUT_ARG1} = "download" ]] || [[ ${INPUT_ARG1} = "d" ]]; then
 			# Pretty simple command. Download the file to $PWD if the user asks us to. Eventually, we should add support for
 			# yv --download --ffmpeg-command.
-			youtube-viewer --non-interactive --download $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --download $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			continue
 		fi
 
@@ -324,7 +335,7 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 				sleep 1
 				continue
 			fi
-			youtube-viewer --non-interactive --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+			youtube-viewer --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 		fi
 	done
 	
