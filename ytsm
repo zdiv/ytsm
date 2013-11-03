@@ -114,6 +114,13 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
+
+		# Prevents null output with no new uploads.
+		if [[ -z ${OUTPUT} ]]; then
+			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'top100' instead?\
+				${RESET_COLOR}"
+			continue
+		fi
 	elif [[ ${INPUT} = "week" ]] || [[ ${INPUT} = "w" ]]; then
 		i=1
 		# This code works with GNU date (part of GNU coreutils, which comes with GNU/Linux distros), but will probably
