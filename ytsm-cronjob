@@ -4,6 +4,13 @@
 # Initial setup (25 vids * number of subscriptions) and new subscriptions (+25 vids) are the two times where it gets really slow.
 # Considering this is meant to be run with a cronjob at midnight, I find the wait acceptable.
 
+# For future reference, assuming UPLOADER=example, the process works like this: we move data/example to data/example_old, we
+# download the raw URLs into example_raw, compare the _raw URLs against _old to find new items, then we use quvi to find the
+# title and append it, along with the date, URL, and uploader, to the data/example file. We then concatenate data/example and
+# data/example_old into data/example_concatenated, and use that to replace the data/example file. Then, we clean up the _raw and
+# _old files and repeat as necessary. After that, we do a simple numeric sort of all lines in the data dir and write the result to
+# today's feed file, which is then symlinked to feed/feed.
+
 [[ -z $XDG_CONFIG_HOME ]] && XDG_CONFIG_HOME="$HOME/.config"
 
 # Keep non-data files out of the data dir or you will probably run into weird problems.
@@ -37,11 +44,7 @@ for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
 	UPLOADER=$(sed -n ${i}p ${SUBS_FILE})
 
 	# Touch files to prevent errors.
-	[ ! -f ${DATA_DIR}/${UPLOADER} ] && touch "${DATA_DIR}/${UPLOADER}"
-	[ ! -f ${DATA_DIR}/${UPLOADER}_raw ] && touch "${DATA_DIR}/${UPLOADER}_old"
-	[ ! -f ${DATA_DIR}/${UPLOADER}_old ] && touch "${DATA_DIR}/${UPLOADER}_old"
-
-	[ -f ${DATA_DIR}/${UPLOADER} ] || echo "${UPLOADER} seems to be new."
+	[ ! -f ${DATA_DIR}/${UPLOADER} ] && (echo "${UPLOADER} seems to be new." && touch "${DATA_DIR}/${UPLOADER}")
 
 	# Relocate old files if need be.
 	[ -f ${DATA_DIR}/${UPLOADER} ] && mv ${DATA_DIR}/${UPLOADER} ${DATA_DIR}/${UPLOADER}_old
@@ -68,10 +71,11 @@ for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
 		echo -n "."
 	done
 
-	# Add a \n after the line of dots. Matches umph's output.
+	# Add "done" after the line of dots to match umph's output.
 	echo " done."
 
-	# cat and replace the regular file. It sometimes complains for no reason, so errors are sent to /dev/null
+	# cat and replace the regular file. This will complain if there are no new items in ${UPLOADER}, and thus no file
+	# present. Because of that, we silence stderr.
 	cat ${DATA_DIR}/${UPLOADER} ${DATA_DIR}/${UPLOADER}_old > ${DATA_DIR}/${UPLOADER}_concatenated 2>/dev/null
 	mv ${DATA_DIR}/${UPLOADER}_concatenated ${DATA_DIR}/${UPLOADER}
 	rm ${DATA_DIR}/${UPLOADER}_old ${DATA_DIR}/${UPLOADER}_raw
