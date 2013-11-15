@@ -27,7 +27,7 @@ Add a few subscriptions at a time to your subscriptions file and run the fetch s
 ##FAQ
 
 <b>What does this run on/what versions of dependencies?</b>
-This was created and tested on a system running Gentoo. I used quvi 0.4.2, umph 0.2.5, youtube-viewer 3.0.8, GNU awk 4.1.0, and GNU sed 4.2.2. ytsm probably won't work with quvi 0.9+. I'll update the script when quvi 0.9+ is unmasked in Gentoo's package repository.
+This was created and tested on a system running Gentoo. I used quvi 0.4.2, umph 0.2.5, youtube-viewer 3.0.8, GNU awk 4.1.0, and GNU sed 4.2.2. As of 15 November 2013, there is an experimental quvi-0.9 branch of ytsm. It isn't complete, but it seems to work.
 
 <b>POSIX compliance and portability between shells?</b>
 The script works with #!/bin/bash --posix or #!/bin/sh, but not with #!/bin/dash, or #!/bin/zsh. The major blockers are that dash's echo handles color codes differently from bash's, and zsh's read works differently than bash's. dash and zsh are technically more correct than bash, but everybody runs bash, so that's what I'm targeting for now. I'll try and get it to work with both bash and dash eventually, because bash is a slow and quirky shell.

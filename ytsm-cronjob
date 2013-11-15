@@ -57,9 +57,9 @@ for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
 		if [[ -z $(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old) ]]; then
 			URL=$(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw)
 
-			# I am passing the QUVI_HOME variable to prevent quvi from using an exec option that may be present in
-			# the user's .quvirc. There should not be a config present in $FEED_DIR unless you use an HTTP proxy.
-			NAME=$(QUVI_HOME="${XDG_CONFIG_HOME}/ytsm" quvi "${URL}" --verbosity mute --exec="echo %t")
+			# Not sure what to do about a possible quvirc for quvi 0.9. In 0.4, we could set QUVI_HOME to
+			# one of the ystm directories, but that's not going to work here, AFAICT.
+			NAME=$(quvi dump "${URL}" | grep QUVI_MEDIA_PROPERTY_TITLE | cut -d '=' -f 2)
 			
 			echo -e "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
 		fi
