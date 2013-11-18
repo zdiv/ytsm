@@ -57,9 +57,9 @@ for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
 		if [[ -z $(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old) ]]; then
 			URL=$(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw)
 
-			# QUVI_HOME has been replaced by QUVI_CONFIG in quvi 0.9. We need to hide stderr for the sake
-			# of ytsm-cronjob's output regardless, so /dev/null is an easy target.
-			NAME=$(QUVI_CONFIG="/dev/null" quvi dump "${URL}" 2>/dev/null | grep QUVI_MEDIA_PROPERTY_TITLE | cut -d '=' -f 2)
+			# youtube-dl might be a better backend than quvi, especially considering the direction that quvi is
+			# going these days. yt-dl is as simple if not simpler than quvi 0.4 is/was.
+			NAME=$(youtube-dl --get-title "${URL}")
 			
 			echo -e "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
 		fi
