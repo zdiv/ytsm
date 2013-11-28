@@ -1,6 +1,6 @@
 #ytsm
 
-Dependencies: umph, quvi, youtube-viewer (3.0.8+ recommended), sed, awk, GNU date, bash, a cron daemon of your choice, and realpath.
+Dependencies: umph, youtube-dl, youtube-viewer (3.0.8+ recommended), sed, awk, GNU date, bash, a cron daemon of your choice, and realpath.
 
 ytsm is a command line YouTube subscription manager composed of two separate scripts: a script that fetches updates to feeds, and a client to view said updates.
 
@@ -12,7 +12,7 @@ This is where ytsm comes in. It keeps track of subscriptions locally, in a reaso
 
 ##How it works
 
-The fetch script, ytsm-cronjob, reads subscriptions from a file on the computer, uses umph to find the URLs of the most recent videos of each and quvi to find the name of each video. The results are stored along with the fetch date in a TSV file called the feed file.
+The fetch script, ytsm-cronjob, reads subscriptions from a file on the computer, uses umph to find the URLs of the most recent videos of each and youtube-dl to find the name of each video. The results are stored along with the fetch date in a TSV file called the feed file.
 
 When the client starts ("ytsm" at a terminal prompt), it compares the current date to a file on the hard drive to find out when the client was last run. If the user asks for new videos, it shows only the videos in the feed file that are newer than the lastrun date. The mechanic used to find new videos is actually quite simple: it loops over the feed file searching for either certain dates or line numbers, formats any matches with a combination of sed and echo, and adds anything it finds to the $OUTPUT variable. The variable is then split into pages of 25 items with sed and echoed to stdout.
 
@@ -27,7 +27,7 @@ Add a few subscriptions at a time to your subscriptions file and run the fetch s
 ##FAQ
 
 <b>What does this run on/what versions of dependencies?</b>
-This was created and tested on a system running Gentoo. I used quvi 0.4.2, umph 0.2.5, youtube-viewer 3.0.8, GNU awk 4.1.0, and GNU sed 4.2.2. ytsm probably won't work with quvi 0.9+. I'll update the script when quvi 0.9+ is unmasked in Gentoo's package repository.
+This was created and tested on a system running Gentoo. I used whatever the latest youtube-dl is, umph 0.2.5, youtube-viewer 3.0.8, GNU awk 4.1.0, and GNU sed 4.2.2.
 
 <b>POSIX compliance and portability between shells?</b>
 The script works with #!/bin/bash --posix or #!/bin/sh, but not with #!/bin/dash, or #!/bin/zsh. The major blockers are that dash's echo handles color codes differently from bash's, and zsh's read works differently than bash's. dash and zsh are technically more correct than bash, but everybody runs bash, so that's what I'm targeting for now. I'll try and get it to work with both bash and dash eventually, because bash is a slow and quirky shell.
@@ -45,9 +45,9 @@ It's short for YouTube Subscription Manager, an entirely unimaginative name for 
 
 ytsm currently depends on GNU userland. This means that ytsm probably won't run on the BSDs or OS X out of the box. I intend to fix this in a future revision.
 
-quvi doesn't make it easy to find the upload date, so this script uses the fetch date instead. If I find a way to work around this, I will update the script.
+youtube-dl doesn't seem to make it easy to find the upload date, so this script uses the fetch date instead. If I find a way to work around this, I will update the script.
 
-The fetch script may require a captcha if it processes too many new videos at once. During testing, I used 75 videos from three uploaders without incident, but when I added all 62 of my subscriptions (about 1300 videos in total), at least 100 of them were nameless because of the captcha. Youtube-viewer and quvi were both unable to view anything for about four hours.
+The fetch script may require a captcha if it processes too many new videos at once. During testing with an old version of ytsm that used quvi 0.4, I used 75 videos from three uploaders without incident, but when I added all 62 of my subscriptions (about 1300 videos in total), at least 100 of them were nameless because of the captcha. Youtube-viewer and quvi were both unable to view anything for about four hours.
 
 On low-end hardware, these scripts are probably not incredibly fast. On my Intel i7-3720QM, an Ivy Bridge CPU with a maximum frequency of 3.6 GHz, it can complete the built-in benchmark in about 170ms. With high end AMD hardware circa 2013, I would expect it to complete in about 300ms. With a higher end ARM processor (A9/A15 at > 1 GHz, or just about any ARMv8 CPU), I expect a score of 2000ms (two seconds) at the very worst.
 
