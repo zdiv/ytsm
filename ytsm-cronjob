@@ -57,9 +57,9 @@ for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
 		if [[ -z $(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old) ]]; then
 			URL=$(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw)
 
-			# youtube-dl might be a better backend than quvi, especially considering the direction that quvi is
-			# going these days. yt-dl is as simple if not simpler than quvi 0.4 is/was.
-			NAME=$(youtube-dl --get-title "${URL}")
+			# youtube-dl seems to be a better backend than quvi after some testing. We set $HOME to the ytsm dir in
+			# order to disable the user's youtube-dl.conf. We probably don't want e.g., audio automatically ripped.
+			NAME=$(HOME="${XDG_CONFIG_HOME}/ytsm" youtube-dl --get-title "${URL}")
 			
 			echo -e "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
 		fi
