@@ -11,6 +11,7 @@
 # or feed in your data dir, for example.
 DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
 FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
+SUBS_FILE="${XDG_CONFIG_HOME}/ytsm/subscriptions"
 CLIENT_DIR="${XDG_CONFIG_HOME}/ytsm/client"
 
 # Color output. Customize with these color codes: http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x329.html
@@ -74,7 +75,7 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 
 	# Grab user input. This prompt could probably be a bit more user friendly.
 	echo "${BOLD}ytsm ready.${RESET_COLOR}"
-	read -p " > " INPUT
+	read -p " > " INPUT INPUT2
 
 	if [[ ${INPUT} = "new" ]] || [[ ${INPUT} = "n" ]]; then
 		# If current date is newer than the one in the lastrun file, print vids until the date is equal.
@@ -174,6 +175,48 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		DATE=$(date +%Y%m%d)
 		FEED_FILE=$(realpath ${FEED_DIR}/feed)
 		continue
+	elif [[ ${INPUT} = "edit" ]] || [[ ${INPUT} = "e" ]]; then
+		# Edit the subs file using $EDITOR. Use vi as a default if not defined.
+		[[ ${EDITOR} ]] || EDITOR=vi
+		${EDITOR} ${SUBS_FILE}
+		continue
+	elif [[ ${INPUT} = "addsub" ]] || [[ ${INPUT} = "as" ]]; then
+		# Adds a sub to the subs file, optionally sorts. The <(echo) is a bashism, but it's also the easiest way to get
+		# the job done. Another approach would be 'echo hi | cat $SUBS_FILE - | sort > $SUBS_FILE', but that's ugly.
+		# We use $SUBS_FILE.1 to protect the file.
+		if [[ -z ${INPUT2} ]]; then
+			echo "${RED}No argument provided.${RESET_COLOR}"
+			continue
+		fi
+
+		read -p "Sort subs file by name? [Yn] " SORTSUBS
+
+		if [[ -z ${SORTSUBS} ]] || [[ ${SORTSUBS} = "y" ]]; then
+			cat ${SUBS_FILE} <(echo ${INPUT2}) | sort > ${SUBS_FILE}.1
+			mv ${SUBS_FILE}.1 ${SUBS_FILE}
+		elif [[ ${SORTSUBS} = "n" ]]; then
+			cat ${SUBS_FILE} <(echo ${INPUT2}) > ${SUBS_FILE}.1
+			mv ${SUBS_FILE}.1 ${SUBS_FILE}
+		fi
+		continue
+	elif [[ ${INPUT} = "delsub" ]] || [[ ${INPUT} = "ds" ]]; then
+		# Same idea as addsub, but in reverse. We do some pattern matching to make sure we don't mess sed up.
+		if [[ -z ${INPUT2} ]]; then
+			echo "${RED}No argument provided.${RESET_COLOR}"
+			continue
+		elif echo ${INPUT2} | egrep -q -v "^[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]$"; then
+			echo "${RED}ERROR${RESET_COLOR}: argument contains non-alphanumeric characters."
+			continue
+		fi
+
+		read -p "${YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]" DEL_CONFIRM
+		if [[ -z ${DEL_CONFIRM} ]] || [[ ${DEL_CONFIRM} = "n" ]]; then
+			echo "Cancelling deletion."
+			continue
+		elif [[ ${DEL_CONFIRM} = "y" ]]; then
+			sed -i "/^${INPUT2}$/d" ${SUBS_FILE}
+		fi
+		continue
 	elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
 		echo "Valid commands:"
 		echo " - new: print new videos."
@@ -192,6 +235,12 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		echo "        Synonym: yv"
 		echo " - update: force an update of the date and feed file"
 		echo "        Synonym: u"
+		echo " - edit: edit the subscriptions file with \$EDITOR"
+		echo "        Synonym: e"
+		echo " - addsub: add a sub to the subs file"
+		echo "        Synonym: as"
+		echo " - delsub: delete a sub from the subs file"
+		echo "        Synonym: ds"
 		echo " - help: print this help."
 		echo "        Synonym: h"
 		echo " - quit: update the lastrun file and exit."
