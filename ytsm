@@ -15,12 +15,12 @@ SUBS_FILE="${XDG_CONFIG_HOME}/ytsm/subscriptions"
 CLIENT_DIR="${XDG_CONFIG_HOME}/ytsm/client"
 
 # Color output. Customize with these color codes: http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x329.html
-BOLD=$(echo -en '\e[1m') # Used for the prompt.
-GREEN=$(echo -en '\e[32m') # Used for the names of videos.
-RED=$(echo -en '\e[1;31m') # Used for errors.
-YELLOW=$(echo -en '\e[93m') # Used for the names of uploaders.
-BOLD_YELLOW=$(echo -en '\e[1;33m') # Used for warnings.
-RESET_COLOR=$(echo -en '\e[00m') # Resets color to the shell default.
+BOLD=$(echo -n '[1m') # Used for the prompt.
+GREEN=$(echo -n '[32m') # Used for the names of videos.
+RED=$(echo -n '[1;31m') # Used for errors.
+YELLOW=$(echo -n '[93m') # Used for the names of uploaders.
+BOLD_YELLOW=$(echo -n '[1;33m') # Used for warnings.
+RESET_COLOR=$(echo -n '[00m') # Resets color to the shell default.
 
 DATE=$(date +%Y%m%d)
 
@@ -45,7 +45,7 @@ RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtu
 # won't be quite right.
 if ! egrep -q '.*[^#].*interactive\s+=>\s+0' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf; then
 	echo ""
-	echo "${YELLOW}WARNING${RESET_COLOR}: 'interactive => 0' is not set in youtube-viewer.conf. ytsm will work"
+	echo "${BOLD_YELLOW}WARNING${RESET_COLOR}: 'interactive => 0' is not set in youtube-viewer.conf. ytsm will work"
 	echo "as expected, but transitions between ytsm and youtube-viewer will not be"
 	echo "completely seamless. This option is only present in youtube-viewer 3.0.8+."
 	echo ""
@@ -209,7 +209,7 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 			continue
 		fi
 
-		read -p "${YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]" DEL_CONFIRM
+		read -p "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]" DEL_CONFIRM
 		if [[ -z ${DEL_CONFIRM} ]] || [[ ${DEL_CONFIRM} = "n" ]]; then
 			echo "Cancelling deletion."
 			continue
