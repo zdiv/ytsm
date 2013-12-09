@@ -33,8 +33,12 @@ if [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
 	exit
 fi
 
-for i in $(seq 1 $(wc -l ${SUBS_FILE} | cut -d ' ' -f 1)); do
-	UPLOADER=$(sed -n ${i}p ${SUBS_FILE})
+# Comment parsing. Load the file into memory (read: a variable), strip out anything following # with optional leading whitespace,
+# then strip out blank lines. Requires slight restructuring of the script to read from the var rather than the file.
+STRIPPED_SUBS="$(sed -e 's/\s*#.*//' -e '/^$/d' ${SUBS_FILE})"
+
+for i in $(seq 1 $(echo "${STRIPPED_SUBS}" | wc -l)); do
+	UPLOADER=$(echo "${STRIPPED_SUBS}" | sed -n ${i}p)
 
 	# Touch files to prevent errors.
 	[ ! -f ${DATA_DIR}/${UPLOADER} ] && touch "${DATA_DIR}/${UPLOADER}"

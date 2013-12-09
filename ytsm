@@ -189,14 +189,16 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 			continue
 		fi
 
-		read -p "Sort subs file by name? [Yn] " SORTSUBS
+		read -p "Sort subs file by name? This might mess up positions of comments. [yN] " SORTSUBS
 
-		if [[ -z ${SORTSUBS} ]] || [[ ${SORTSUBS} = "y" ]]; then
+		if [[ ${SORTSUBS} = "y" ]]; then
 			cat ${SUBS_FILE} <(echo ${INPUT2}) | sort > ${SUBS_FILE}.1
 			mv ${SUBS_FILE}.1 ${SUBS_FILE}
-		elif [[ ${SORTSUBS} = "n" ]]; then
+		elif [[ ${SORTSUBS} = "n" ]] || [[ -z ${SORTSUBS} ]]; then
 			cat ${SUBS_FILE} <(echo ${INPUT2}) > ${SUBS_FILE}.1
 			mv ${SUBS_FILE}.1 ${SUBS_FILE}
+		else
+			echo "${RED}Error${RESET_COLOR}: response invalid. Cowardly refusing to write changes."
 		fi
 		continue
 	elif [[ ${INPUT} = "delsub" ]] || [[ ${INPUT} = "ds" ]]; then
@@ -212,9 +214,12 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		read -p "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]" DEL_CONFIRM
 		if [[ -z ${DEL_CONFIRM} ]] || [[ ${DEL_CONFIRM} = "n" ]]; then
 			echo "Cancelling deletion."
-			continue
 		elif [[ ${DEL_CONFIRM} = "y" ]]; then
-			sed -i "/^${INPUT2}$/d" ${SUBS_FILE}
+			# Removes the line even if a comment follows it on the same line. For example, if a line reads:
+			# 'foo # bar', ytsm's 'ds foo' should remove the entire line.
+			sed -i "/^${INPUT2}\s*#*.*$/d" ${SUBS_FILE}
+		else
+			echo "${RED}Error${RESET_COLOR}: response invalid. Cowardly refusing to write changes."
 		fi
 		continue
 	elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
