@@ -338,10 +338,8 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 				RESOLUTION=${INPUT}
 			elif [[ -z ${INPUT} ]]; then
 				echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
-				sleep 1
 			else
 				echo "${RED}Error: bad resolution.${RESET_COLOR}"
-				sleep 1
 			fi
 			continue
 		elif [[ ${INPUT} = "help" ]] || [[ ${INPUT} = "h" ]]; then
@@ -389,11 +387,9 @@ while [[ ${INPUT} != "q" ]] || [[ ${INPUT} != "quit" ]]; do
 		else
 			if ! [[ ${INPUT} =~ ^[0-9]+$ ]]; then
 				echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
-				sleep 1
 				continue
 			elif [[ ${INPUT} -gt $(echo "${OUTPUT}" | wc -l) ]]; then
 				echo "${RED}Error: number out of range.${RESET_COLOR}"
-				sleep 1
 				continue
 			fi
 			youtube-viewer --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
