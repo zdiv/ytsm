@@ -4,7 +4,7 @@
 # Initial setup (25 vids * number of subscriptions) and new subscriptions (+25 vids) are the two times where it gets really slow.
 # Considering this is meant to be run with a cronjob at midnight, I find the wait acceptable.
 
-[[ -z $XDG_CONFIG_HOME ]] && XDG_CONFIG_HOME="$HOME/.config"
+[ -z "$XDG_CONFIG_HOME" ] && XDG_CONFIG_HOME="$HOME/.config"
 
 # Keep non-data files out of the data dir or you will probably run into weird problems.
 DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
@@ -12,14 +12,14 @@ SUBS_FILE="${XDG_CONFIG_HOME}/ytsm/subscriptions"
 FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
 
 # Warn the user and/or take corrective action in the event of missing files.
-[[ ! -d ${DATA_DIR} ]] && mkdir -p ${DATA_DIR} && echo "Making new data dir." >&2
-[[ ! -d ${FEED_DIR} ]] && mkdir -p ${FEED_DIR} && echo "Making new feed dir." >&2
-[[ ! -a ${SUBS_FILE} ]] && echo "ERROR: make a new subscription file and rerun." >&2
+[ -d ${DATA_DIR} ] || (mkdir -p ${DATA_DIR} && echo "Making new data dir." >&2)
+[ -d ${FEED_DIR} ] || (mkdir -p ${FEED_DIR} && echo "Making new feed dir." >&2)
+[ -f ${SUBS_FILE} ] || echo "ERROR: make a new subscription file and rerun." >&2
 
 # This date format means we can use regular math and inequalities with no special processing.
 DATE=$(date +%Y%m%d)
 
-if [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 	echo "To add a new subscription, add it as a new line to your subscriptions file and"
 	echo "run ytsm-cronjob. Your subscriptions file should be present at"
 	echo "\$XDG_CONFIG_HOME/ytsm/subscriptions, or \$HOME/.config/ytsm if \$XDG_CONFIG_HOME"
@@ -58,14 +58,14 @@ for i in $(seq 1 $(echo "${STRIPPED_SUBS}" | wc -l)); do
 	for j in $(seq 1 $(wc -l ${DATA_DIR}/${UPLOADER}_raw | cut -d ' ' -f 1)); do
 
 		# If vid is not in old file, then process the new URLs. We'll concatenate the new and old entries later.
-		if [[ -z $(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old) ]]; then
+		if [ -z "$(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old)" ]; then
 			URL=$(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw)
 
 			# youtube-dl seems to be a better backend than quvi after some testing. We set $HOME to the ytsm dir in
 			# order to disable the user's youtube-dl.conf. We probably don't want e.g., audio automatically ripped.
 			NAME=$(HOME="${XDG_CONFIG_HOME}/ytsm" youtube-dl --get-title "${URL}")
 			
-			echo -e "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
+			echo "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
 		fi
 
 		# Prints a dot for each video processed.
@@ -83,5 +83,5 @@ done
 
 # This sorts big numbers first, which means newer items come first. A malformed data file will probably screw this up.
 sort -n -r ${DATA_DIR}/* > ${FEED_DIR}/feed-${DATE} || echo "Sort failed. Check for malformed data files in ${DATA_DIR}."
-[[ -a ${FEED_DIR}/feed ]] && unlink ${FEED_DIR}/feed
+[ -h ${FEED_DIR}/feed ] && unlink ${FEED_DIR}/feed
 ln -s ${FEED_DIR}/feed-${DATE} ${FEED_DIR}/feed
