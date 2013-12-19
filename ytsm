@@ -79,10 +79,10 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 	if [ "${INPUT}" = "new" ] || [ "${INPUT}" = "n" ]; then
 		# If current date is newer than the one in the lastrun file, print vids until the date is equal.
 		# If not, then say "no new vids. Did you want all vids?"
-		if [ ${DATE} -gt ${LAST_DATE} ]; then
+		if [ ${DATE} -ge ${LAST_DATE} ]; then
 			i=1
 			# Loop over the file and print items, so long as they are newer than or as old as LAST_DATE.
-			while [ ${LAST_DATE} -lt $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
+			while [ ${LAST_DATE} -le $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
 				calculate_output
 				i=$(( i + 1 ))
 			done

@@ -61,9 +61,21 @@ for i in $(seq 1 $(echo "${STRIPPED_SUBS}" | wc -l)); do
 		if [ -z "$(grep $(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw) ${DATA_DIR}/${UPLOADER}_old)" ]; then
 			URL=$(sed -n ${j}p ${DATA_DIR}/${UPLOADER}_raw)
 
-			# youtube-dl seems to be a better backend than quvi after some testing. We set $HOME to the ytsm dir in
-			# order to disable the user's youtube-dl.conf. We probably don't want e.g., audio automatically ripped.
-			NAME=$(HOME="${XDG_CONFIG_HOME}/ytsm" youtube-dl --get-title "${URL}")
+			# We get the filename, but we don't use it as a filename. This seems to be the only way to extract the
+			# upload date. It is grouped with the title to reduce network strain.
+			YTDL_STR=$(youtube-dl --get-filename -o "%(upload_date)s %(title)s" ${URL})
+			DATE=$(echo "${YTDL_STR}" | cut -c -8)
+			NAME=$(echo "${YTDL_STR}" | cut -c 10-)
+
+			# Error checking.
+			# Fall back on the system date if the upload date isn't present.
+			if [ -z "${DATE}" ]; then
+				DATE=$(date +%Y%m%d)
+			fi
+			# Log a basic but informative error in the feed file.
+			if [ -z "${NAME}" ]; then
+				NAME="(ytsm failed to get title)"
+			fi
 			
 			echo "${DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
 		fi
