@@ -15,6 +15,7 @@ SUBS_FILE="${XDG_CONFIG_HOME}/ytsm/subscriptions"
 CLIENT_DIR="${XDG_CONFIG_HOME}/ytsm/client"
 
 # Color output. Customize with these color codes: http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x329.html
+# The ^[ you probably see is a literal escape character. It can be tyed with <C-v> <ESC> in most terminals.
 BOLD=$(echo -n '[1m') # Used for the prompt.
 GREEN=$(echo -n '[32m') # Used for the names of videos.
 RED=$(echo -n '[1;31m') # Used for errors.
@@ -107,17 +108,18 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
-	elif [ "${INPUT}" = "today" ] || [ "${INPUT}" = "t" ]; then
-		# Dumps only videos with today's date in the feed file.
+	elif [ "${INPUT}" = "yesterday" ] || [ "${INPUT}" = "y" ]; then
+		# Dumps only videos with yesterday's date in the feed file.
+		YESTERDAY=$(date --date='-1 day' +%Y%m%d)
 		i=1
-		while [ ${DATE} -eq $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
+		while [ ${YESTERDAY} -ge $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
 
 		# Prevents null output with no new uploads.
 		if [ -z "${OUTPUT}" ]; then
-			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'top100' instead?\
+			echo "${RED}No items.${RESET_COLOR} Maybe you want 'top100' instead?\
 				${RESET_COLOR}"
 			continue
 		fi
@@ -180,9 +182,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 		${EDITOR} ${SUBS_FILE}
 		continue
 	elif [ "${INPUT}" = "addsub" ] || [ "${INPUT}" = "as" ]; then
-		# Adds a sub to the subs file, optionally sorts. The <(echo) is a bashism, but it's also the easiest way to get
-		# the job done. Another approach would be 'echo hi | cat $SUBS_FILE - | sort > $SUBS_FILE', but that's ugly.
-		# We use $SUBS_FILE.1 to protect the file.
+		# Adds a sub to the subs file, optionally sorts.
 		if [ -z "${INPUT2}" ]; then
 			echo "${RED}No argument provided.${RESET_COLOR}"
 			continue
@@ -190,6 +190,8 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 
 		read -p "Sort subs file by name? This might mess up positions of comments. [yN] " SORTSUBS
 
+		# We use $SUBS_FILE.1 here because otherwise, $SUBS_FILE would be truncated by the > before it could be opened
+		# for reading. Then the file is opened, and we immediately get an EOF. In short, it would erase the file.
 		if [ "${SORTSUBS}" = "y" ]; then
 			(cat ${SUBS_FILE} && echo ${INPUT2}) | sort > ${SUBS_FILE}.1
 			mv ${SUBS_FILE}.1 ${SUBS_FILE}
@@ -227,8 +229,8 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 		echo "        Synonym: n"
 		echo " - all: print all videos. This can be very slow."
 		echo "        Synonym: a"
-		echo " - today: print all videos fetched today."
-		echo "        Synonym: t"
+		echo " - yesterday: print all videos uploaded yesterday."
+		echo "        Synonym: y"
 		echo " - week: print all videos fetched this week."
 		echo "        Synonym: w"
 		echo " - top100: print the 100 most recently fetched videos."
