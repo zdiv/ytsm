@@ -112,7 +112,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 		# Dumps only videos with yesterday's date in the feed file.
 		YESTERDAY=$(date --date='-1 day' +%Y%m%d)
 		i=1
-		while [ ${YESTERDAY} -ge $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
+		while [ $(sed -n ${i}p ${FEED_FILE} | cut -f 1) -ge ${YESTERDAY} ]; do
 			calculate_output
 			i=$(( i + 1 ))
 		done
