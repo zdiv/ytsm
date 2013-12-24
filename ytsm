@@ -90,12 +90,12 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 
 			# Prevents null output with no new uploads.
 			if [ -z "${OUTPUT}" ]; then
-				echo "${RED}No new items.${RESET_COLOR} Maybe you want 'today' or 'top100' instead?\
+				echo "${RED}No new items.${RESET_COLOR} Maybe you want 'yesterday' or 'top100' instead?\
 					${RESET_COLOR}"
 				continue
 			fi
 		else
-			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'today' or 'top100' instead?${RESET_COLOR}"
+			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'yesterday' or 'top100' instead?${RESET_COLOR}"
 			continue
 		fi
 	elif [ "${INPUT}" = "all" ] || [ "${INPUT}" = "a" ]; then
