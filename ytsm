@@ -290,7 +290,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			youtube-viewer --resolution=${RESOLUTION} --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
-			read -p ""
+			read -p "" unusedvar
 			continue
 		elif [ "${INPUT_ARG1}" = "comments" ] || [ "${INPUT_ARG1}" = "c" ]; then
 			# No "Press Enter" prompt on this one because yv does it by itself.
@@ -372,7 +372,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			echo ""
 			# We add a prompt here so that the help isn't lost above the list of videos.
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
-			read -p ""
+			read -p "" unusedvar
 			continue
 		elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
 			# Reset all relevant variables and return to the first prompt.
