@@ -273,7 +273,10 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 
 		# Calculate the range of items to show on each page and the number of pages.
 		[ -z "${PAGE}" ] && PAGE=1
-		[ -z "${TOTAL_PAGES}" ] && TOTAL_PAGES=$(echo "{$OUTPUT}" | wc -l) && TOTAL_PAGES=$(( TOTAL_PAGES / 25 ))
+		# POSIX math doesn't do floating point calculations, meaning it can't round up. The algebraic alternative is to add
+		# (denominator - 1) to the numerator, so that the number will always round up if it isn't an integer. In this
+		# case, we do e.g., ((41 + (25 - 1)) / 25 ) = ((41 + 24) / 25) = ( 65 / 25 ), which is equal to 2 in integer math.
+		[ -z "${TOTAL_PAGES}" ] && TOTAL_PAGES=$(echo "{$OUTPUT}" | wc -l) && TOTAL_PAGES=$(( ( TOTAL_PAGES + 24 ) / 25 ))
 		[ "${TOTAL_PAGES}" = "0" ] && TOTAL_PAGES=1
 		OUT_MAX=$(( PAGE * 25 ))
 		OUT_MIN=$(( OUT_MAX - 24 ))
