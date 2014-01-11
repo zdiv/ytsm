@@ -224,36 +224,38 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 		fi
 		continue
 	elif [ "${INPUT}" = "help" ] || [ "${INPUT}" = "h" ]; then
-		echo "Valid commands:"
-		echo " - new: print new videos."
-		echo "        Synonym: n"
-		echo " - all: print all videos. This can be very slow."
-		echo "        Synonym: a"
-		echo " - yesterday: print all videos uploaded yesterday."
-		echo "        Synonym: y"
-		echo " - week: print all videos fetched this week."
-		echo "        Synonym: w"
-		echo " - top100: print the 100 most recently fetched videos."
-		echo "        Synonym: t100"
-		echo " - bench: run top100 with the inclusion of a simple benchmark."
-		echo "        Synonym: b"
-		echo " - youtube-viewer: run a yv instance with provided arguments."
-		echo "        Synonym: yv"
-		echo " - update: force an update of the date and feed file"
-		echo "        Synonym: u"
-		echo " - edit: edit the subscriptions file with \$EDITOR"
-		echo "        Synonym: e"
-		echo " - addsub: add a sub to the subs file"
-		echo "        Synonym: as"
-		echo " - delsub: delete a sub from the subs file"
-		echo "        Synonym: ds"
-		echo " - help: print this help."
-		echo "        Synonym: h"
-		echo " - quit: update the lastrun file and exit."
-		echo "        Synonym: q"
-		echo " - Control-C: exit without updating the lastrun file."
-		echo ""
-		echo "Further help is available at the vid prompt."
+		cat << EOF
+Valid commands:
+ - new: print new videos.
+        Synonym: n
+ - all: print all videos. This can be very slow.
+        Synonym: a
+ - yesterday: print all videos uploaded yesterday.
+        Synonym: y
+ - week: print all videos fetched this week.
+        Synonym: w
+ - top100: print the 100 most recently fetched videos.
+        Synonym: t100
+ - bench: run top100 with the inclusion of a simple benchmark.
+        Synonym: b
+ - youtube-viewer: run a yv instance with provided arguments.
+        Synonym: yv
+ - update: force an update of the date and feed file
+        Synonym: u
+ - edit: edit the subscriptions file with \$EDITOR
+        Synonym: e
+ - addsub: add a sub to the subs file
+        Synonym: as
+ - delsub: delete a sub from the subs file
+        Synonym: ds
+ - help: print this help.
+        Synonym: h
+ - quit: update the lastrun file and exit.
+        Synonym: q
+ - Control-C: exit without updating the lastrun file.
+
+Further help is available at the vid prompt.
+EOF
 		continue
 	elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
 		break
@@ -338,7 +340,8 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			read -p " > " NEWRES
 			if [ "${NEWRES}" = "original" ] || [ "${NEWRES}" = "1080" ] || [ "${NEWRES}" = "720" ] \
 				|| [ "${NEWRES}" = "480" ] || [ "${NEWRES}" = "360" ] || [ "${NEWRES}" = "340" ] \
-				|| [ "${NEWRES}" = "240" ] || [ "${NEWRES}" = "180" ] || [ "${NEWRES}" = "144" ]; then
+				|| [ "${NEWRES}" = "240" ] || [ "${NEWRES}" = "180" ] || [ "${NEWRES}" = "144" ] \
+				|| [ "${NEWRES}" = "audio" ]; then
 				RESOLUTION=${NEWRES}
 			elif [ -z "${NEWRES}" ]; then
 				echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
@@ -347,32 +350,32 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			fi
 			continue
 		elif [ "${INPUT}" = "help" ] || [ "${INPUT}" = "h" ]; then
-			echo "Vid prompt help."
-			echo ""
-			echo "Valid commands:"
-			echo " - <number>: play a video. <number> refers to an item number in the vid list."
-			echo " - <number> info: query youtube-viewer for info on video <number>."
-			echo "        Synonym: <number> i"
-			echo " - <number> comments: use youtube-viewer to view comments for video <number>."
-			echo "        Synonym: <number> c"
-			echo " - <number> author: display videos by the author of video <number>."
-			echo "        Append \"playlists\" or \"p\" to display playlists instead of uploads."
-			echo "        Synonym: \"<number> a\", \"<number> a p\""
-			echo " - <number> download: download the video to the current directory."
-			echo "        Synonym: <number> d"
-			echo " - next: display the next page."
-			echo "        Synonym: n"
-			echo " - p: display the previous page."
-			echo "        Synonym: p"
-			echo " - reso: change the resolution youtube-viewer requests from YouTube. Pick one of"
-			echo "         the following: original, 1080, 720, 480, 360, 340, 240, 180, 144."
-			echo "        Synonym: r"
-			echo " - help: print this help."
-			echo "        Synonym: h"
-			echo " - quit: return to the previous prompt."
-			echo "        Synonym: q"
-			echo " - Control-C: exit without updating the lastrun file."
-			echo ""
+			cat << EOF
+Valid commands:
+ - <number>: play a video. <number> refers to an item number in the vid list.
+ - <number> info: query youtube-viewer for info on video <number>.
+        Synonym: <number> i
+ - <number> comments: use youtube-viewer to view comments for video <number>.
+        Synonym: <number> c
+ - <number> author: display videos by the author of video <number>.
+        Append \"playlists\" or \"p\" to display playlists instead of uploads.
+        Synonym: \"<number> a\", \"<number> a p\"
+ - <number> download: download the video to the current directory.
+        Synonym: <number> d
+ - next: display the next page.
+        Synonym: n
+ - previous: display the previous page.
+        Synonym: p
+ - reso: change the resolution youtube-viewer requests from YouTube. Pick one of
+        the following: original, 1080, 720, 480, 360, 340, 240, 180, 144, audio.
+        Synonym: r
+ - help: print this help.
+        Synonym: h
+ - quit: return to the previous prompt.
+        Synonym: q
+ - Control-C: exit without updating the lastrun file.
+
+EOF
 			# We add a prompt here so that the help isn't lost above the list of videos.
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			read -p "" unusedvar
