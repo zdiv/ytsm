@@ -20,16 +20,18 @@ FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
 DATE=$(date +%Y%m%d)
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-	echo "To add a new subscription, add it as a new line to your subscriptions file and"
-	echo "run ytsm-cronjob. Your subscriptions file should be present at"
-	echo "\$XDG_CONFIG_HOME/ytsm/subscriptions, or \$HOME/.config/ytsm if \$XDG_CONFIG_HOME"
-	echo "is an empty variable. To have ytsm-cronjob run automatically, type \"crontab -e\""
-	echo "at a terminal and add \"@daily /path/to/ytsm-cronjob\"."
-	echo ""
-	echo "\$XDG_CONFIG_HOME is currently set to \"$XDG_CONFIG_HOME\""
-	echo ""
-	echo "Valid arguments:"
-	echo " --help (-h): display this help."
+	cat << EOF
+To add a new subscription, add it as a new line to your subscriptions file and
+run ytsm-cronjob. Your subscriptions file should be present at
+\$XDG_CONFIG_HOME/ytsm/subscriptions, or \$HOME/.config/ytsm if \$XDG_CONFIG_HOME
+is an empty variable. To have ytsm-cronjob run automatically, type "crontab -e"
+at a terminal and add "@daily /path/to/ytsm-cronjob"."
+
+\$XDG_CONFIG_HOME is currently set to "$XDG_CONFIG_HOME"
+
+Valid arguments:
+ --help (-h): display this help.
+EOF
 	exit
 fi
 
@@ -42,14 +44,14 @@ for i in $(seq 1 $(echo "${STRIPPED_SUBS}" | wc -l)); do
 
 	# Touch files to prevent errors.
 	[ ! -f ${DATA_DIR}/${UPLOADER} ] && touch "${DATA_DIR}/${UPLOADER}"
-	[ ! -f ${DATA_DIR}/${UPLOADER}_raw ] && touch "${DATA_DIR}/${UPLOADER}_old"
+	[ ! -f ${DATA_DIR}/${UPLOADER}_raw ] && touch "${DATA_DIR}/${UPLOADER}_raw"
 	[ ! -f ${DATA_DIR}/${UPLOADER}_old ] && touch "${DATA_DIR}/${UPLOADER}_old"
 
 	[ -f ${DATA_DIR}/${UPLOADER} ] || echo "${UPLOADER} seems to be new."
 
 	# Relocate old files if need be.
 	[ -f ${DATA_DIR}/${UPLOADER} ] && mv ${DATA_DIR}/${UPLOADER} ${DATA_DIR}/${UPLOADER}_old
-	echo -n "${UPLOADER}: " && umph -t u $UPLOADER > ${DATA_DIR}/${UPLOADER}_raw
+	echo -n "${UPLOADER}: " && umph -t uploads $UPLOADER > ${DATA_DIR}/${UPLOADER}_raw
 
 	# Status report:
 	echo -n "${UPLOADER}: "

@@ -45,8 +45,6 @@ It's short for YouTube Subscription Manager, an entirely unimaginative name for 
 
 ytsm currently depends on GNU userland. This means that ytsm probably won't run on the BSDs or OS X out of the box. I intend to fix this in a future revision.
 
-youtube-dl doesn't seem to make it easy to find the upload date, so this script uses the fetch date instead. If I find a way to work around this, I will update the script.
-
 The fetch script may require a captcha if it processes too many new videos at once. During testing with an old version of ytsm that used quvi 0.4, I used 75 videos from three uploaders without incident, but when I added all 62 of my subscriptions (about 1300 videos in total), at least 100 of them were nameless because of the captcha. Youtube-viewer and quvi were both unable to view anything for about four hours.
 
 On low-end hardware, these scripts are probably not incredibly fast. On my Intel i7-3720QM, an Ivy Bridge CPU with a maximum frequency of 3.6 GHz, it can complete the built-in benchmark in about 170ms. With high end AMD hardware circa 2013, I would expect it to complete in about 300ms. With a higher end ARM processor (A9/A15 at > 1 GHz, or just about any ARMv8 CPU), I expect a score of 2000ms (two seconds) at the very worst.

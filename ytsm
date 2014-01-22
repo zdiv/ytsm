@@ -7,7 +7,7 @@
 [ -z ${XDG_CONFIG_HOME} ] && XDG_CONFIG_HOME="${HOME}/.config"
 
 # You should probably leave these variables alone, but in the event that you do mess with them, using ~/ in these variables
-# causes problems.  Use $HOME or an absolute path instead.  Make sure the data dir contains only data. Don't put your subs file
+# causes problems. Use $HOME or an absolute path instead. Make sure the data dir contains only data. Don't put your subs file
 # or feed in your data dir, for example.
 DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
 FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
@@ -33,7 +33,7 @@ FEED_FILE=$(realpath ${FEED_DIR}/feed)
 
 # Report an error and abort execution on a missing feed file.
 if [ ! -f ${FEED_FILE} ]; then
-	echo "${RED}Error: no feed file present in ${FEED_DIR}. You probably haven't configured ytsm-cronjob yet.${RESET_COLOR}"
+	echo "${RED}Error${RESET_COLOR}: no feed file present in ${FEED_DIR}. You probably haven't configured ytsm-cronjob yet."
 	exit 1
 fi
 
@@ -109,7 +109,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			i=$(( i + 1 ))
 		done
 	elif [ "${INPUT}" = "yesterday" ] || [ "${INPUT}" = "y" ]; then
-		# Dumps only videos with yesterday's date in the feed file.
+		# Dumps only videos with yesterday's or today's date in the feed file.
 		YESTERDAY=$(date --date='-1 day' +%Y%m%d)
 		i=1
 		while [ $(sed -n ${i}p ${FEED_FILE} | cut -f 1) -ge ${YESTERDAY} ]; do
@@ -166,7 +166,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			${RESET_COLOR}"
 	elif [ "${INPUT}" = yv* ] || [ "${INPUT}" = youtube-viewer* ]; then
 		# Spawn a youtube-viewer instance with user-specified arguments. Note that the value checks in the above line are
-		# not in quotes so that pash uses pattern matching rather than literal matching.
+		# not in quotes so that bash uses pattern matching rather than literal matching.
 		YV_COMMAND=$(echo ${INPUT} | sed 's/^yv/youtube-viewer/')
 		$(echo ${YV_COMMAND})
 		continue
@@ -260,7 +260,7 @@ EOF
 	elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
 		break
 	else
-		echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
+		echo "${RED}Syntax error${RESET_COLOR}: type 'help' for a list of valid commands."
 		INPUT=""
 		continue
 	fi
@@ -295,6 +295,7 @@ EOF
 			youtube-viewer --resolution=${RESOLUTION} --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
 			echo ""
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
+			# If read is specified without a variable, dash complains. We use unusedvar for that.
 			read -p "" unusedvar
 			continue
 		elif [ "${INPUT_ARG1}" = "comments" ] || [ "${INPUT_ARG1}" = "c" ]; then
@@ -346,7 +347,7 @@ EOF
 			elif [ -z "${NEWRES}" ]; then
 				echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
 			else
-				echo "${RED}Error: bad resolution.${RESET_COLOR}"
+				echo "${RED}Error${RESET_COLOR}: bad resolution."
 			fi
 			continue
 		elif [ "${INPUT}" = "help" ] || [ "${INPUT}" = "h" ]; then
@@ -358,8 +359,8 @@ Valid commands:
  - <number> comments: use youtube-viewer to view comments for video <number>.
         Synonym: <number> c
  - <number> author: display videos by the author of video <number>.
-        Append \"playlists\" or \"p\" to display playlists instead of uploads.
-        Synonym: \"<number> a\", \"<number> a p\"
+        Append "playlists" or "p" to display playlists instead of uploads.
+        Synonym: "<number> a", "<number> a p"
  - <number> download: download the video to the current directory.
         Synonym: <number> d
  - next: display the next page.
@@ -378,6 +379,7 @@ Valid commands:
 EOF
 			# We add a prompt here so that the help isn't lost above the list of videos.
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
+			# If read is specified without a variable, dash complains. We use unusedvar for that.
 			read -p "" unusedvar
 			continue
 		elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
@@ -393,10 +395,10 @@ EOF
 			continue 2
 		else
 			if ! echo "${INPUT}" | egrep -q '^[0-9]+$'; then
-				echo "${RED}Syntax error: type 'help' for a list of valid commands.${RESET_COLOR}"
+				echo "${RED}Syntax error${RESET_COLOR}: type 'help' for a list of valid commands."
 				continue
 			elif [ "${INPUT}" -gt $(echo "${OUTPUT}" | wc -l) ]; then
-				echo "${RED}Error: number out of range.${RESET_COLOR}"
+				echo "${RED}Error${RESET_COLOR}: number out of range."
 				continue
 			fi
 			youtube-viewer --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
