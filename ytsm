@@ -77,7 +77,10 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 	echo "${BOLD}ytsm ready.${RESET_COLOR}"
 	read -p " > " INPUT INPUT2
 
-	if [ "${INPUT}" = "new" ] || [ "${INPUT}" = "n" ]; then
+	if [ "${INPUT}" = "x" ]; then
+		# Exit immediately without updating the lastrun file.
+		exit
+	elif [ "${INPUT}" = "new" ] || [ "${INPUT}" = "n" ]; then
 		# If current date is newer than the one in the lastrun file, print vids until the date is equal.
 		# If not, then say "no new vids. Did you want all vids?"
 		if [ ${DATE} -ge ${LAST_DATE} ]; then
@@ -252,7 +255,7 @@ Valid commands:
         Synonym: h
  - quit: update the lastrun file and exit.
         Synonym: q
- - Control-C: exit without updating the lastrun file.
+ - x: exit without updating the lastrun file.
 
 Further help is available at the vid prompt.
 EOF
@@ -321,7 +324,10 @@ EOF
 		fi
 
 		# These commands are separate from the above because they don't rely on secondary arguments (INPUT_ARG1, etc.).
-		if [ "${INPUT}" = "n" ] || [ "${INPUT}" = "next" ]; then
+		if [ "${INPUT}" = "x" ]; then
+			# exit immediately.
+			exit
+		elif [ "${INPUT}" = "n" ] || [ "${INPUT}" = "next" ]; then
 			# Go to next page.
 			PAGE=$(( PAGE + 1 ))
 			if [ ${PAGE} -gt ${TOTAL_PAGES} ]; then
@@ -374,7 +380,7 @@ Valid commands:
         Synonym: h
  - quit: return to the previous prompt.
         Synonym: q
- - Control-C: exit without updating the lastrun file.
+ - x: exit without updating the lastrun file.
 
 EOF
 			# We add a prompt here so that the help isn't lost above the list of videos.
