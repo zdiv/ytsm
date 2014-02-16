@@ -75,7 +75,8 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 
 	# Grab user input. This prompt could probably be a bit more user friendly.
 	echo "${BOLD}ytsm ready.${RESET_COLOR}"
-	read -p " > " INPUT INPUT2
+	echo -n " > "
+	read INPUT INPUT2
 
 	if [ "${INPUT}" = "x" ]; then
 		# Exit immediately without updating the lastrun file.
@@ -191,7 +192,8 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			continue
 		fi
 
-		read -p "Sort subs file by name? This might mess up positions of comments. [yN] " SORTSUBS
+		echo -n "Sort subs file by name? This might mess up positions of comments. [yN] "
+		read "Sort subs file by name? This might mess up positions of comments. [yN] "
 
 		# We use $SUBS_FILE.1 here because otherwise, $SUBS_FILE would be truncated by the > before it could be opened
 		# for reading. Then the file is opened, and we immediately get an EOF. In short, it would erase the file.
@@ -215,7 +217,8 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			continue
 		fi
 
-		read -p "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]" DEL_CONFIRM
+		echo -n "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]"
+		read DEL_CONFIRM
 		if [ -z "${DEL_CONFIRM}" ] || [ "${DEL_CONFIRM}" = "n" ]; then
 			echo "Cancelling deletion."
 		elif [ "${DEL_CONFIRM}" = "y" ]; then
@@ -291,7 +294,8 @@ EOF
 
 		# Ask for input and run youtube-viewer if necessary.
 		echo "${BOLD}Vid?${RESET_COLOR}"
-		read -p " > " INPUT INPUT_ARG1 INPUT_ARG2
+		echo -n " > "
+		read INPUT INPUT_ARG1 INPUT_ARG2
 
 		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
 		if [ "${INPUT_ARG1}" = "info" ] || [ "${INPUT_ARG1}" = "i" ]; then
@@ -299,7 +303,7 @@ EOF
 			echo ""
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			# If read is specified without a variable, dash complains. We use unusedvar for that.
-			read -p "" unusedvar
+			read unusedvar
 			continue
 		elif [ "${INPUT_ARG1}" = "comments" ] || [ "${INPUT_ARG1}" = "c" ]; then
 			# No "Press Enter" prompt on this one because yv does it by itself.
@@ -344,7 +348,8 @@ EOF
 		elif [ "${INPUT}" = "reso" ] || [ "${INPUT}" = "r" ]; then
 			# This is a resolution picker. The default comes from the user's youtube-viewer.conf.
 			echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
-			read -p " > " NEWRES
+			echo -n " > "
+			read NEWRES
 			if [ "${NEWRES}" = "original" ] || [ "${NEWRES}" = "1080" ] || [ "${NEWRES}" = "720" ] \
 				|| [ "${NEWRES}" = "480" ] || [ "${NEWRES}" = "360" ] || [ "${NEWRES}" = "340" ] \
 				|| [ "${NEWRES}" = "240" ] || [ "${NEWRES}" = "180" ] || [ "${NEWRES}" = "144" ] \
@@ -386,7 +391,7 @@ EOF
 			# We add a prompt here so that the help isn't lost above the list of videos.
 			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
 			# If read is specified without a variable, dash complains. We use unusedvar for that.
-			read -p "" unusedvar
+			read unusedvar
 			continue
 		elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
 			# Reset all relevant variables and return to the first prompt.

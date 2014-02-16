@@ -30,7 +30,16 @@ Add a few subscriptions at a time to your subscriptions file and run the fetch s
 This was created and tested on a system running Gentoo. I used whatever the latest youtube-dl is, umph 0.2.5, youtube-viewer 3.0.8, GNU awk 4.1.0, and GNU sed 4.2.2.
 
 <b>POSIX compliance and portability between shells?</b>
-As of 17 Dec 2013, ytsm and ytsm-cronjob are POSIX-compliant enough to run in dash, which is very close to a pure POSIX shell. This does not necessarily mean that they will run in any shell, however. In my testing, ytsm had some issues with zsh and ksh, although both scripts work in bash. I really recommend that you use dash instead of bash if it is installed on your system, as it completes the built-in benchmark in two-thirds the time it takes bash on my system (the average of three benchmarks with each shell worked out to 173ms vs. 262ms).
+As of 16 Feb 2014, ytsm will run in most if not all of the popular shells, because I am making an effort to avoid shell-specific extensions to standard utilities. To the best of my knowledge, any POSIX-compliant shell should work, but the script defaults to bash because almost everybody has it and I know it works. ytsm-cronjob works with dash and bash. I know it currently has problems with ksh, and other shells are untested. I recommend using dash for both scripts not only because it is the fastest shell, but also because most of ytsm'ss testing is done with dash.
+
+<b>How fast is each shell?</b>
+I benchmarked each of the following shells by running the built-in benchmark three times, then taking the average of the three scores.
+
+ * dash 0.5.7.3: 176 ms
+ * ksh 2012-02-29: 176 ms
+ * zsh 5.0.2: 207 ms
+ * mksh R48b: 215 ms
+ * bash 4.2: 263 ms
 
 <b>How and where are the data files organized?</b>
 ytsm puts the files in $XDG_CONFIG_HOME/ytsm, or ~/.config/ytsm if that variable is not set. That directory contains three more directories: client, data, and feed as well as the subscriptions file. The client dir contains nothing more than the lastrun file, which is a plain text file containing a date in the format YYYYMMDD. The data dir contains several files, each named after a subscription. These files are simple tab separated files where each line contains a date stamp, URL, title, and the uploader's username. The cronjob combines these into a feed file titled "feed-$DATE", $DATE replaced with a datestamp as needed. It then links the latest feed file to "feed", so that the client can easily find it. These files can be trivially parsed with sed or cut.
