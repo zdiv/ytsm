@@ -193,7 +193,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 		fi
 
 		echo -n "Sort subs file by name? This might mess up positions of comments. [yN] "
-		read "Sort subs file by name? This might mess up positions of comments. [yN] "
+		read SORTSUBS
 
 		# We use $SUBS_FILE.1 here because otherwise, $SUBS_FILE would be truncated by the > before it could be opened
 		# for reading. Then the file is opened, and we immediately get an EOF. In short, it would erase the file.
@@ -217,7 +217,7 @@ while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 			continue
 		fi
 
-		echo -n "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN]"
+		echo -n "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN] "
 		read DEL_CONFIRM
 		if [ -z "${DEL_CONFIRM}" ] || [ "${DEL_CONFIRM}" = "n" ]; then
 			echo "Cancelling deletion."
