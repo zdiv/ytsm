@@ -27,13 +27,16 @@ Add a few subscriptions at a time to your subscriptions file and run the fetch s
 ##FAQ
 
 <b>What does this run on/what versions of dependencies?</b>
-This was created and tested on a system running Gentoo. I used whatever the latest youtube-dl is, umph 0.2.5, youtube-viewer 3.0.8, GNU awk 4.1.0, and GNU sed 4.2.2.
+ytsm was created and tested on a system running Gentoo. I used a recent version of youtube-dl, umph 0.2.5, youtube-viewer 3.0.9, GNU awk 4.0.2, and GNU sed 4.2.1.
+
+<b>Tell me about releases</b>
+Releases are made whenever I feel the current git version of the script is good enough for regular use. For the user, this means that the releases are probably less likely to have bugs than a random git version would, but it also means that the user might have to deal with bugs specific to the older version of the script. The choice between git and releases basically comes down to which bugs the user prefers: bigger bugs that appear and disappear at random, or smaller bugs that they might need to live with until the next release.
 
 <b>POSIX compliance and portability between shells?</b>
-As of 16 Feb 2014, ytsm will run in most if not all of the popular shells, because I am making an effort to avoid shell-specific extensions to standard utilities. To the best of my knowledge, any POSIX-compliant shell should work, but the script defaults to bash because almost everybody has it and I know it works. ytsm-cronjob works with dash and bash. I know it currently has problems with ksh, and other shells are untested. I recommend using dash for both scripts not only because it is the fastest shell, but also because most of ytsm'ss testing is done with dash.
+As of 16 Feb 2014, ytsm will run in most if not all of the popular shells, because I am making an effort to avoid shell-specific extensions to standard utilities. To the best of my knowledge, any POSIX-compliant shell should work, but the script defaults to bash because almost everybody has it and I know it works. ytsm-cronjob works with dash and bash. I know it currently has problems with ksh, and other shells are untested. I recommend using dash for both scripts not only because it is the fastest shell, but also because most of ytsm's testing is done with dash.
 
 <b>How fast is each shell?</b>
-I benchmarked each of the following shells by running the built-in benchmark three times, then taking the average of the three scores.
+I benchmarked each of the following shells by running the built-in benchmark three times, then taking the average of the three scores. The test system had an Intel i7-3720QM processor.
 
  * dash 0.5.7.3: 176 ms
  * ksh 2012-02-29: 176 ms
@@ -56,14 +59,12 @@ ytsm currently depends on GNU userland. This means that ytsm probably won't run 
 
 The fetch script may require a captcha if it processes too many new videos at once. During testing with an old version of ytsm that used quvi 0.4, I used 75 videos from three uploaders without incident, but when I added all 62 of my subscriptions (about 1300 videos in total), at least 100 of them were nameless because of the captcha. Youtube-viewer and quvi were both unable to view anything for about four hours.
 
-On low-end hardware, these scripts are probably not incredibly fast. On my Intel i7-3720QM, an Ivy Bridge CPU with a maximum frequency of 3.6 GHz, it can complete the built-in benchmark in about 170ms. With high end AMD hardware circa 2013, I would expect it to complete in about 300ms. With a higher end ARM processor (A9/A15 at > 1 GHz, or just about any ARMv8 CPU), I expect a score of 2000ms (two seconds) at the very worst.
-
 The user-facing documentation isn't excellent. There are passable help screens at the prompts, but both ytsm and ytsm-cronjob really could use better '--help' screens.
 
 The week command probably depends on GNU date. If you are running another implementation of date, it may be possible to tweak the script to get it to work. I may add support for BSD-style date in a future revision.
 
 youtube-viewer can't play any videos that YouTube requires the user to log in for (though youtube-viewer _does_ have a login command that would possibly work). This limitation mostly applies to videos intended for mature audiences.
 
-The fetch script has no error checking whatsoever. However, as of this writing in October 2013, my copy of ytsm has only failed to download a name for one video of the 564 that have been processed in the last three months, and that was a video that simply wouldn't work except from the youtube website for reasons still unknown. If the script doesn't work as well for you as it does for me, I would greatly appreciate your input on how it can be improved.
+The cronjob has no error checking whatsoever. However, as of this writing in October 2013, my copy of ytsm has only failed to download a name for one video of the 564 that have been processed in the last three months, and that was a video that simply wouldn't work except from the youtube website for reasons still unknown. If the script doesn't work as well for you as it does for me, I would greatly appreciate your input on how it can be improved.
 
 ytsm-cronjob should probably optionally become a standalone daemon for users that can't or won't run a cron daemon on their system.
