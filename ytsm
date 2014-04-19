@@ -1,21 +1,20 @@
 #!/bin/bash
 
-# As per freedesktop.org's XDG Base Directory Specification, all config files are stored in $XDG_CONFIG_HOME when set, or
-# $HOME/.config when it isn't set. Theoretically, this variable could be used to maintain multiple feed files. This would be
-# useful in the event that the user has two YouTube accounts they would prefer to keep separate. Technically, most of what I
-# store here should probably go into $XDG_DATA_HOME (~/.local/share). We'll fix that eventually.
+# FIXME: A lot of what is stored here should probably go into
+# $XDG_DATA_HOME (~/.local/share), as per the XDG Base Directory Spec.
 [ -z ${XDG_CONFIG_HOME} ] && XDG_CONFIG_HOME="${HOME}/.config"
 
-# You should probably leave these variables alone, but in the event that you do mess with them, using ~/ in these variables
-# causes problems. Use $HOME or an absolute path instead. Make sure the data dir contains only data. Don't put your subs file
-# or feed in your data dir, for example.
+# Make sure the data dir contains only data. Don't put your subs file or feed in
+# your data dir, for example.
 DATA_DIR="${XDG_CONFIG_HOME}/ytsm/data"
 FEED_DIR="${XDG_CONFIG_HOME}/ytsm/feed"
 SUBS_FILE="${XDG_CONFIG_HOME}/ytsm/subscriptions"
 CLIENT_DIR="${XDG_CONFIG_HOME}/ytsm/client"
 
-# Color output. Customize with these color codes: http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x329.html
-# The ^[ you probably see is a literal escape character. It can be tyed with <C-v> <ESC> in most terminals.
+# Color output. Customize with these color codes:
+# http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x329.html
+# The ^[ you probably see is a literal escape character. It can be tyed with
+# <C-v> <ESC> in most terminals.
 BOLD=$(echo -n '[1m') # Used for the prompt.
 GREEN=$(echo -n '[32m') # Used for the names of videos.
 RED=$(echo -n '[1;31m') # Used for errors.
@@ -25,31 +24,36 @@ RESET_COLOR=$(echo -n '[00m') # Resets color to the shell default.
 
 DATE=$(date +%Y%m%d)
 
-# If we don't use the full path of the feed file, it is possible that the daemon could run while the client is still up and
-# cause the numbers to not line up with the actual videos (e.g., video four in today's feed might be video six in tomorrow's,
-# so selecting video four would actually select video two because of an updated feed file). I'm using the GNU version of
-# realpath, but most other versions (FreeBSD realpath, etc.) should work the same way.
+# If we don't use the full path of the feed file, it is possible that the
+# cronjob could run while the client is still up and cause the numbers to not
+# line up with the actual videos (e.g., video four in today's feed might be
+# video six in tomorrow's, so selecting video four would actually select video
+# two because of the updated feed file).
 FEED_FILE=$(realpath ${FEED_DIR}/feed)
 
 # Report an error and abort execution on a missing feed file.
 if [ ! -f ${FEED_FILE} ]; then
-	echo "${RED}Error${RESET_COLOR}: no feed file present in ${FEED_DIR}. You probably haven't configured ytsm-cronjob yet."
-	exit 1
+  echo "${RED}Error${RESET_COLOR}: no feed file present in ${FEED_DIR}."
+  echo "You probably haven't configured ytsm-cronjob yet."
+  exit 1
 fi
 
-# Pull data from config files. For now, that's just resolution info from youtube-viewer.
-RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf | \
-	awk '/resolution/ {printf $3}')
+# Pull data from config files. For now, that's just resolution info from
+# youtube-viewer.
+RESOLUTION=$(sed -e 's/#.*$//g' -e 's/"//g' -e 's/,$//' \
+  ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf | \
+  awk '/resolution/ {printf $3}')
 
-# youtube-viewer's --non-interactive flag was removed in yv 3.0.8 and replaced with a global variable set in the configuration
-# file. If that variable is not set, we warn the user that the script will work, but that transitions between yv and ytsm
-# won't be quite right.
-if ! egrep -q '.*[^#].*interactive\s+=>\s+0' ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf; then
-	echo ""
-	echo "${BOLD_YELLOW}WARNING${RESET_COLOR}: 'interactive => 0' is not set in youtube-viewer.conf. ytsm will work"
-	echo "as expected, but transitions between ytsm and youtube-viewer will not be"
-	echo "completely seamless. This option is only present in youtube-viewer 3.0.8+."
-	echo ""
+# youtube-viewer's --non-interactive flag was removed in yv 3.0.8 and replaced
+# with a global variable in the configuration file. If that variable is not set,
+# we warn the user that the script will work, but that transitions between yv
+# and ytsm won't be quite right.
+if ! egrep -q '.*[^#].*interactive\s+=>\s+0' \
+  ${XDG_CONFIG_HOME}/youtube-viewer/youtube-viewer.conf; then
+  cat << EOF
+${BOLD_YELLOW}WARNING${RESET_COLOR}: 'interactive => 0' is not set in youtube-viewer.conf.
+Transitions between ytsm and youtube-viewer might not be completely seamless.
+EOF
 fi
 
 # Make the lastrun file if not present.
@@ -59,178 +63,220 @@ LAST_DATE=$(cat ${CLIENT_DIR}/lastrun)
 
 # This function generates the video list.
 calculate_output() {
-	# This cuts the feed file down to one line and two columns, then adds color and pretty formatting.
-	OUTPUT=$(echo "${OUTPUT}" && echo -n "${i}. " && sed -e "${i}!d" -e 's/^\([^\t]*\t\)\{2\}//' -e "s/^/${GREEN}/" \
-		-e "s/\\t/ ${YELLOW}\\(by /" -e "s/$/\\)${RESET_COLOR}/" ${FEED_FILE})
+  # This cuts the feed file down to one line and two columns, then adds color
+  # and pretty formatting.
+  OUTPUT=$(echo "${OUTPUT}" && echo -n "${i}. " && sed -e "${i}!d" \
+    -e 's/^\([^\t]*\t\)\{2\}//' -e "s/^/${GREEN}/" \
+    -e "s/\\t/ ${YELLOW}\\(by /" -e "s/$/\\)${RESET_COLOR}/" ${FEED_FILE})
 }
 
 # This is a basic help screen. We should probably expand on it in the future.
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-	echo "Run ytsm without an argument and type \"help\" at the prompt."
-	exit
+  echo "Run ytsm without an argument and type \"help\" at the prompt."
+  exit
 fi
+
+# cute greeting. replaces the old "ytsm ready." prompt.
+TIME=$(date +"%H%m")
+if [ "$TIME" -lt 1200 ]; then
+  greeting="Good morning."
+elif [ "$TIME" -gt 1200 -a "$TIME" -lt "1700" ]; then
+  greeting="Good afternoon."
+elif [ "$TIME -ge 1700" ]; then
+  greeting="Good evening."
+else
+  greeting="Hello."
+fi
+echo "$greeting"
 
 # Loop until user says quit.
 while ! [ "${INPUT}" = "q" ] || ! [ "${INPUT}" = "quit" ]; do
 
-	# Grab user input. This prompt could probably be a bit more user friendly.
-	echo "${BOLD}ytsm ready.${RESET_COLOR}"
-	echo -n " > "
-	read INPUT INPUT2
+  # Get user input.
+  echo -n " > "
+  read INPUT INPUT2
 
-	if [ "${INPUT}" = "x" ]; then
-		# Exit immediately without updating the lastrun file.
-		exit
-	elif [ "${INPUT}" = "new" ] || [ "${INPUT}" = "n" ]; then
-		# If current date is newer than the one in the lastrun file, print vids until the date is equal.
-		# If not, then say "no new vids. Did you want all vids?"
-		if [ ${DATE} -ge ${LAST_DATE} ]; then
-			i=1
-			# Loop over the file and print items, so long as they are newer than or as old as LAST_DATE.
-			while [ ${LAST_DATE} -le $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
-				calculate_output
-				i=$(( i + 1 ))
-			done
+  case "${INPUT}" in
+    x)
+      exit
+    ;;
+    new|n)
+      # If current date is newer than the one in the lastrun file, print vids
+      # until the date is equal.  If not, then say "no new vids. Did you want
+      # all vids?"
+      if [ ${DATE} -ge ${LAST_DATE} ]; then
+        i=1
+        # Loop over the file and print items, so long as they are newer than or
+        # as old as LAST_DATE.
+        while [ ${LAST_DATE} -le $(sed -n ${i}p ${FEED_FILE} | cut -f 1) ]; do
+          calculate_output
+          i=$(( i + 1 ))
+        done
 
-			# Prevents null output with no new uploads.
-			if [ -z "${OUTPUT}" ]; then
-				echo "${RED}No new items.${RESET_COLOR} Maybe you want 'yesterday' or 'top100' instead?\
-					${RESET_COLOR}"
-				continue
-			fi
-		else
-			echo "${RED}No new items.${RESET_COLOR} Maybe you want 'yesterday' or 'top100' instead?${RESET_COLOR}"
-			continue
-		fi
-	elif [ "${INPUT}" = "all" ] || [ "${INPUT}" = "a" ]; then
-		# Same as above, but dump the entire feed file. This is very, very slow with a lot of videos.
-		i=1
+        # Prevents null output with no new uploads.
+        if [ -z "${OUTPUT}" ]; then
+          echo "${RED}No new items.${RESET_COLOR}"
+          echo "Maybe you want 'yesterday' or 'top100' instead?"
+          continue
+        fi
+      else
+        echo "${RED}No new items.${RESET_COLOR}"
+        echo "Maybe you want 'yesterday' or 'top100' instead?${RESET_COLOR}"
+        continue
+      fi
+    ;;
+    all|a)
+      # Same as above, but dump the entire feed file. This is very, very slow
+      # with a lot of videos.
+      i=1
 
-		FEED_FILE_LINE_COUNT=$(wc -l ${FEED_FILE} | cut -d ' ' -f 1)
+      FEED_FILE_LINE_COUNT=$(wc -l ${FEED_FILE} | cut -d ' ' -f 1)
 
-		while [ ${i} -le ${FEED_FILE_LINE_COUNT} ]; do
-			calculate_output
-			i=$(( i + 1 ))
-		done
-	elif [ "${INPUT}" = "yesterday" ] || [ "${INPUT}" = "y" ]; then
-		# Dumps only videos with yesterday's or today's date in the feed file.
-		YESTERDAY=$(date --date='-1 day' +%Y%m%d)
-		i=1
-		while [ $(sed -n ${i}p ${FEED_FILE} | cut -f 1) -ge ${YESTERDAY} ]; do
-			calculate_output
-			i=$(( i + 1 ))
-		done
+      while [ ${i} -le ${FEED_FILE_LINE_COUNT} ]; do
+        calculate_output
+        i=$(( i + 1 ))
+      done
+    ;;
+    yesterday|y)
+      # Dumps only videos with yesterday's or today's date in the feed file.
+      YESTERDAY=$(date --date='-1 day' +%Y%m%d)
+      i=1
+      while [ $(sed -n ${i}p ${FEED_FILE} | cut -f 1) -ge ${YESTERDAY} ]; do
+        calculate_output
+        i=$(( i + 1 ))
+      done
 
-		# Prevents null output with no new uploads.
-		if [ -z "${OUTPUT}" ]; then
-			echo "${RED}No items.${RESET_COLOR} Maybe you want 'top100' instead?\
-				${RESET_COLOR}"
-			continue
-		fi
-	elif [ "${INPUT}" = "week" ] || [ "${INPUT}" = "w" ]; then
-		i=1
-		# This code works with GNU date (part of GNU coreutils, which comes with GNU/Linux distros), but will probably
-		# fail with BSD userland. This affects Linuxes with BSD userland (i.e., Linux without GNU), the BSDs and OS X.
-		# If you don't know which date you have, see if 'date --version' mentions GNU coreutils.
-		LAST_WEEK=$(date --date="-1 week" +%Y%m%d)
+      # Prevents null output with no new uploads.
+      if [ -z "${OUTPUT}" ]; then
+        echo "${RED}No items.${RESET_COLOR} Maybe you want 'top100' instead?"
+        continue
+      fi
+    ;;
+    week|w)
+      i=1
+      # This code works with GNU date, but will probably fail with BSD userland.
+      # This mostly affects the BSDs and OS X. If you don't know which date you
+      # have, see if 'date --version' mentions GNU coreutils.
+      LAST_WEEK=$(date --date="-1 week" +%Y%m%d)
 
-		# We use this extra check to prevent an unrecoverable hang when the while loop runs out of lines to index. This
-		# only happens when the feed file is less than a week old.
-		FEED_FILE_LINE_COUNT=$(wc -l ${FEED_FILE} | cut -d ' ' -f 1)
+      # We use this extra check to prevent an unrecoverable hang when the while
+      # loop runs out of lines to index. This only happens when the feed file is
+      # less than a week old.
+      FEED_FILE_LINE_COUNT=$(wc -l ${FEED_FILE} | cut -d ' ' -f 1)
 
-		while [ $(cut -f 1 ${FEED_FILE} | sed -n ${i}p) -ge ${LAST_WEEK} ] && [ ${i} -le ${FEED_FILE_LINE_COUNT} ]
-			do
-			calculate_output
-			i=$(( i + 1 ))
-		done
-	elif [ "${INPUT}" = "top100" ] || [ "${INPUT}" = "t100" ]; then
-		# Because processing 1200+ URLs is glacially slow, we have a top 100 fuction.
-		i=1
-		while [ ${i} -le "100" ]; do
-			calculate_output
-			i=$(( i + 1 ))
-		done
-	elif [ "${INPUT}" = "bench" ] || [ "${INPUT}" = "b" ]; then
-		# This is exactly the same as the top100 function, but with a benchmark built in. Post processing is not
-		# benchmarked, but that's less than 3% of the total time spent calculating on my system, even including the
-		# benchmark calculations (it works out to 226ms vs. 220 ms). I have kept the benchmark contained to the bench
-		# not-a-function-but-you-know-what-I-mean for the sake of simplicity.
+      while [ $(cut -f 1 ${FEED_FILE} | sed -n ${i}p) -ge ${LAST_WEEK} ] &&
+        [ ${i} -le ${FEED_FILE_LINE_COUNT} ]; do
+        calculate_output
+        i=$(( i + 1 ))
+      done
+    ;;
+    top100|t100)
+      # Because processing 1200+ URLs is glacially slow, we have a top 100
+      # fuction.
+      i=1
+      while [ ${i} -le "100" ]; do
+        calculate_output
+        i=$(( i + 1 ))
+      done
+    ;;
+    bench|b)
+      # This is exactly the same as the top100 function, but with a benchmark
+      # built in. Post processing is not benchmarked, but that's less than 3% of
+      # the total time spent calculating on my system, even including the
+      # benchmark calculations (it works out to 226ms vs. 220 ms). I have kept
+      # the benchmark contained to the bench command for the sake of simplicity.
 
-		START_TIME=$(date +%s%N)
-		i=1
-		while [ ${i} -le "100" ]; do
-			calculate_output
-			i=$(( i + 1 ))
-		done
-		END_TIME=$(date +%s%N)
+      # Get time to the nanosecond
+      START_TIME=$(date +%s%N)
+      i=1
+      while [ ${i} -le "100" ]; do
+        calculate_output
+        i=$(( i + 1 ))
+      done
+      END_TIME=$(date +%s%N)
 
-		# Based on info here: http://stackoverflow.com/questions/3683434/using-time-command-in-bash-script
-		ELAPSED_TIME=$(( END_TIME - START_TIME )) # In nanoseconds.
-		echo "${BOLD}Benchmark completed in ${ELAPSED_TIME}ns (${RED}$((ELAPSED_TIME/1000000))ms${RESET_COLOR}${BOLD})\
-			${RESET_COLOR}"
-	elif [ "${INPUT}" = yv* ] || [ "${INPUT}" = youtube-viewer* ]; then
-		# Spawn a youtube-viewer instance with user-specified arguments. Note that the value checks in the above line are
-		# not in quotes so that bash uses pattern matching rather than literal matching.
-		YV_COMMAND=$(echo ${INPUT} | sed 's/^yv/youtube-viewer/')
-		$(echo ${YV_COMMAND})
-		continue
-	elif [ "${INPUT}" = "update" ] || [ "${INPUT}" = "u" ]; then
-		# Forces ytsm to reread the feed file and update it's internal date. This is possibly useful if ytsm was left
-		# running overnight, because ytsm would write the previous date to disk when updating the lastrun file.
-		DATE=$(date +%Y%m%d)
-		FEED_FILE=$(realpath ${FEED_DIR}/feed)
-		continue
-	elif [ "${INPUT}" = "edit" ] || [ "${INPUT}" = "e" ]; then
-		# Edit the subs file using $EDITOR. Use vi as a default if not defined.
-		[ ${EDITOR} ] || EDITOR=vi
-		${EDITOR} ${SUBS_FILE}
-		continue
-	elif [ "${INPUT}" = "addsub" ] || [ "${INPUT}" = "as" ]; then
-		# Adds a sub to the subs file, optionally sorts.
-		if [ -z "${INPUT2}" ]; then
-			echo "${RED}No argument provided.${RESET_COLOR}"
-			continue
-		fi
+      # Compare the start and end times, convert to readable values.
+      ELAPSED_TIME=$(( END_TIME - START_TIME )) # In nanoseconds.
+      echo "${BOLD}Benchmark completed in ${ELAPSED_TIME}ns (${RED}$((ELAPSED_TIME/1000000))ms${RESET_COLOR}${BOLD})${RESET_COLOR}"
+    ;;
+    yv*|youtube-viewer*)
+      # Spawn a youtube-viewer instance with user-specified arguments. Note that
+      # the value checks in the above line are not in quotes so that bash uses
+      # pattern matching rather than literal matching.
+      YV_COMMAND=$(echo ${INPUT} | sed 's/^yv/youtube-viewer/')
+      $(echo ${YV_COMMAND})
+      continue
+    ;;
+    update|u)
+      # Forces ytsm to reread the feed file and update it's internal date. This
+      # is possibly useful if ytsm was left running overnight, because ytsm
+      # would write the previous date to disk when updating the lastrun file.
+      DATE=$(date +%Y%m%d)
+      FEED_FILE=$(realpath ${FEED_DIR}/feed)
+      continue
+    ;;
+    edit|e)
+      # Edit the subs file using $EDITOR. Use vi as a default if not defined.
+      [ ${EDITOR} ] || EDITOR=vi
+      ${EDITOR} ${SUBS_FILE}
+      continue
+    ;;
+    addsub|as)
+      # Adds a sub to the subs file, optionally sorts.
+      if [ -z "${INPUT2}" ]; then
+        echo "${RED}No argument provided.${RESET_COLOR}"
+        continue
+      fi
 
-		echo -n "Sort subs file by name? This might mess up positions of comments. [yN] "
-		read SORTSUBS
+      echo -n "Sort subs file by name? This might mess up positions of comments. [yN] "
+      read SORTSUBS
 
-		# We use $SUBS_FILE.1 here because otherwise, $SUBS_FILE would be truncated by the > before it could be opened
-		# for reading. Then the file is opened, and we immediately get an EOF. In short, it would erase the file.
-		if [ "${SORTSUBS}" = "y" ]; then
-			(cat ${SUBS_FILE} && echo ${INPUT2}) | sort > ${SUBS_FILE}.1
-			mv ${SUBS_FILE}.1 ${SUBS_FILE}
-		elif [ "${SORTSUBS}" = "n" ] || [ -z ${SORTSUBS} ]; then
-			(cat ${SUBS_FILE} && echo ${INPUT2}) > ${SUBS_FILE}.1
-			mv ${SUBS_FILE}.1 ${SUBS_FILE}
-		else
-			echo "${RED}Error${RESET_COLOR}: response invalid. Cowardly refusing to write changes."
-		fi
-		continue
-	elif [ "${INPUT}" = "delsub" ] || [ "${INPUT}" = "ds" ]; then
-		# Same idea as addsub, but in reverse. We do some pattern matching to make sure we don't mess sed up.
-		if [ -z "${INPUT2}" ]; then
-			echo "${RED}No argument provided.${RESET_COLOR}"
-			continue
-		elif echo ${INPUT2} | egrep -q -v "^[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]$"; then
-			echo "${RED}ERROR${RESET_COLOR}: argument contains non-alphanumeric characters."
-			continue
-		fi
+      # We use $SUBS_FILE.1 here because otherwise, $SUBS_FILE would be
+      # truncated by the > before it could be opened for reading. Then the file
+      # is opened, and we immediately get an EOF. In short, it would erase the
+      # file.
+      case $SORTSUBS in
+        y)
+          (cat ${SUBS_FILE} && echo ${INPUT2}) | sort > ${SUBS_FILE}.1
+          mv ${SUBS_FILE}.1 ${SUBS_FILE}
+        ;;
+        n)
+          (cat ${SUBS_FILE} && echo ${INPUT2}) > ${SUBS_FILE}.1
+          mv ${SUBS_FILE}.1 ${SUBS_FILE}
+        ;;
+        *)
+          echo "${RED}Error${RESET_COLOR}: response invalid."
+          echo "Cowardly refusing to write changes."
+      esac
+      continue
+    ;;
+    delsub|ds)
+      # Same idea as addsub, but in reverse. We do some pattern matching to make
+      # sure we don't mess sed up.
+      if [ -z "${INPUT2}" ]; then
+        echo "${RED}No argument provided.${RESET_COLOR}"
+        continue
+      elif echo ${INPUT2} | egrep -q -v "^[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]$"; then
+        echo "${RED}ERROR${RESET_COLOR}: argument contains non-alphanumeric characters."
+        continue
+      fi
 
-		echo -n "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN] "
-		read DEL_CONFIRM
-		if [ -z "${DEL_CONFIRM}" ] || [ "${DEL_CONFIRM}" = "n" ]; then
-			echo "Cancelling deletion."
-		elif [ "${DEL_CONFIRM}" = "y" ]; then
-			# Removes the line even if a comment follows it on the same line. For example, if a line reads:
-			# 'foo # bar', ytsm's 'ds foo' should remove the entire line.
-			sed -i "/^${INPUT2}\s*#*.*$/d" ${SUBS_FILE}
-		else
-			echo "${RED}Error${RESET_COLOR}: response invalid. Cowardly refusing to write changes."
-		fi
-		continue
-	elif [ "${INPUT}" = "help" ] || [ "${INPUT}" = "h" ]; then
-		cat << EOF
+      echo -n "${BOLD_YELLOW}WARNING${RESET_COLOR}: about to delete ${INPUT2}. Is this okay? [yN] "
+      read DEL_CONFIRM
+      if [ -z "${DEL_CONFIRM}" ] || [ "${DEL_CONFIRM}" = "n" ]; then
+        echo "Cancelling deletion."
+      elif [ "${DEL_CONFIRM}" = "y" ]; then
+        # Removes the line even if a comment follows it on the same line. For
+        # example, if a line reads: 'foo # bar', ytsm's 'ds foo' should remove
+        # the entire line.
+        sed -i "/^${INPUT2}\s*#*.*$/d" ${SUBS_FILE}
+      else
+        echo "${RED}Error${RESET_COLOR}: response invalid. Cowardly refusing to write changes."
+      fi
+      continue
+    ;;
+    help|h)
+      cat << EOF
 Valid commands:
  - new: print new videos.
         Synonym: n
@@ -262,107 +308,131 @@ Valid commands:
 
 Further help is available at the vid prompt.
 EOF
-		continue
-	elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
-		break
-	else
-		echo "${RED}Syntax error${RESET_COLOR}: type 'help' for a list of valid commands."
-		INPUT=""
-		continue
-	fi
+      continue
+    ;;
+    quit|q)
+      break
+    ;;
+    *)
+      echo "${RED}Syntax error${RESET_COLOR}: type 'help' for a list of valid commands."
+      INPUT=""
+      continue
+  esac
 
-	# After the user picks one of ytsm's main operations, the output is paginated and displayed, and another prompt is
-	# displayed that asks what ytsm should do next.
-	while [ "${INPUT}" != "q" ] || [ "${INPUT}" != "quit" ]; do
+  # After the user picks one of ytsm's main operations, the output is paginated
+  # and displayed, and another prompt is displayed that asks what ytsm should do
+  # next.
+  while [ "${INPUT}" != "q" ] || [ "${INPUT}" != "quit" ]; do
 
-		# Removes a blank line that appears before the video list. It's a consequence of the method we use to generate
-		# the list.
-		OUTPUT=$(echo "${OUTPUT}" | sed -e '/^$/d')
+    # Removes a blank line that appears before the video list. It's a
+    # consequence of the method we use to generate the list.
+    OUTPUT=$(echo "${OUTPUT}" | sed -e '/^$/d')
 
-		# Calculate the range of items to show on each page and the number of pages.
-		[ -z "${PAGE}" ] && PAGE=1
-		# POSIX math doesn't do floating point calculations, meaning it can't round up. The algebraic alternative is to add
-		# (denominator - 1) to the numerator, so that the number will always round up if it isn't an integer. In this
-		# case, we do e.g., ((41 + (25 - 1)) / 25 ) = ((41 + 24) / 25) = ( 65 / 25 ), which is equal to 2 in integer math.
-		[ -z "${TOTAL_PAGES}" ] && TOTAL_PAGES=$(echo "{$OUTPUT}" | wc -l) && TOTAL_PAGES=$(( ( TOTAL_PAGES + 24 ) / 25 ))
-		[ "${TOTAL_PAGES}" = "0" ] && TOTAL_PAGES=1
-		OUT_MAX=$(( PAGE * 25 ))
-		OUT_MIN=$(( OUT_MAX - 24 ))
+    # Calculate the range of items to show on each page and the number of pages.
+    [ -z "${PAGE}" ] && PAGE=1
 
-		echo "${OUTPUT}" | sed -n ${OUT_MIN},${OUT_MAX}p
-		echo "Page ${PAGE} of ${TOTAL_PAGES}"
+    # Shell math doesn't do floating point calculations, meaning it can't round
+    # up. The algebraic alternative is to add (denominator - 1) to the
+    # numerator, so that the number will always round up if it isn't an integer.
+    # In this case, we do e.g., ((41 + (25 - 1)) / 25 ) = ((41 + 24) / 25) =
+    # ( 65 / 25 ), which is equal to 2 in integer math.
+    [ -z "${TOTAL_PAGES}" ] && TOTAL_PAGES=$(echo "{$OUTPUT}" | wc -l) &&
+      TOTAL_PAGES=$(( ( TOTAL_PAGES + 24 ) / 25 ))
 
-		# Ask for input and run youtube-viewer if necessary.
-		echo "${BOLD}Vid?${RESET_COLOR}"
-		echo -n " > "
-		read INPUT INPUT_ARG1 INPUT_ARG2
+    [ "${TOTAL_PAGES}" = "0" ] && TOTAL_PAGES=1
+    OUT_MAX=$(( PAGE * 25 ))
+    OUT_MIN=$(( OUT_MAX - 24 ))
 
-		# If INPUT_ARG1 is set, query for video info from youtube-viewer, then restart the loop.
-		if [ "${INPUT_ARG1}" = "info" ] || [ "${INPUT_ARG1}" = "i" ]; then
-			youtube-viewer --resolution=${RESOLUTION} --info $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
-			echo ""
-			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
-			# If read is specified without a variable, dash complains. We use unusedvar for that.
-			read unusedvar
-			continue
-		elif [ "${INPUT_ARG1}" = "comments" ] || [ "${INPUT_ARG1}" = "c" ]; then
-			# No "Press Enter" prompt on this one because yv does it by itself.
-			youtube-viewer --resolution=${RESOLUTION} --comments $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
-			echo ""
-			continue
-		elif [ "${INPUT_ARG1}" = "author" ] || [ "${INPUT_ARG1}" = "a" ]; then
-			# If the user asks, display playlists by the author of the chosen playlists. If the user doesn't ask,
-			# show the author's main video page instead.
-			if [ "${INPUT_ARG2}" = "playlists" ] || [ "${INPUT_ARG2}" = "p" ]; then
-				youtube-viewer --resolution=${RESOLUTION} --user-pl $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
-			else
-				youtube-viewer --resolution=${RESOLUTION} --user $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
-			fi
-			echo ""
-			continue
-		elif [ "${INPUT_ARG1}" = "download" ] || [ "${INPUT_ARG1}" = "d" ]; then
-			# Pretty simple command. Download the file to $PWD if the user asks us to. Eventually, we should add support for
-			# yv --download --ffmpeg-command.
-			youtube-viewer --download $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
-			continue
-		fi
+    echo "${OUTPUT}" | sed -n ${OUT_MIN},${OUT_MAX}p
+    echo "Page ${PAGE} of ${TOTAL_PAGES}"
 
-		# These commands are separate from the above because they don't rely on secondary arguments (INPUT_ARG1, etc.).
-		if [ "${INPUT}" = "x" ]; then
-			# exit immediately.
-			exit
-		elif [ "${INPUT}" = "n" ] || [ "${INPUT}" = "next" ]; then
-			# Go to next page.
-			PAGE=$(( PAGE + 1 ))
-			if [ ${PAGE} -gt ${TOTAL_PAGES} ]; then
-				PAGE=${TOTAL_PAGES}
-			fi
-			continue
-		elif [ "${INPUT}" = "p" ] || [ "${INPUT}" = "previous" ]; then
-			# Go to previous page.
-			PAGE=$(( PAGE - 1 ))
-			if [ ${PAGE} -lt "1" ]; then
-				PAGE=1
-			fi
-			continue
-		elif [ "${INPUT}" = "reso" ] || [ "${INPUT}" = "r" ]; then
-			# This is a resolution picker. The default comes from the user's youtube-viewer.conf.
-			echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
-			echo -n " > "
-			read NEWRES
-			if [ "${NEWRES}" = "original" ] || [ "${NEWRES}" = "1080" ] || [ "${NEWRES}" = "720" ] \
-				|| [ "${NEWRES}" = "480" ] || [ "${NEWRES}" = "360" ] || [ "${NEWRES}" = "340" ] \
-				|| [ "${NEWRES}" = "240" ] || [ "${NEWRES}" = "180" ] || [ "${NEWRES}" = "144" ] \
-				|| [ "${NEWRES}" = "audio" ]; then
-				RESOLUTION=${NEWRES}
-			elif [ -z "${NEWRES}" ]; then
-				echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
-			else
-				echo "${RED}Error${RESET_COLOR}: bad resolution."
-			fi
-			continue
-		elif [ "${INPUT}" = "help" ] || [ "${INPUT}" = "h" ]; then
-			cat << EOF
+    # Ask for input and run youtube-viewer if necessary.
+    echo "${BOLD}Vid?${RESET_COLOR}"
+    echo -n " > "
+    read INPUT INPUT_ARG1 INPUT_ARG2
+
+    # If INPUT_ARG1 is set, query for video info from youtube-viewer, then
+    # restart the loop.
+    case "${INPUT_ARG1}" in
+      info|i)
+        youtube-viewer --resolution=${RESOLUTION} --info \
+          $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+        echo ""
+        echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
+        # If read is specified without a variable, dash complains. We use
+        # unusedvar for that. Like the name suggests, we never use it.
+        read unusedvar
+        continue
+      ;;
+      comments|c)
+        # No "Press Enter" prompt on this one because yv does it by itself.
+        youtube-viewer --resolution=${RESOLUTION} --comments \
+          $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+        echo ""
+        continue
+      ;;
+      author|a)
+        # If the user asks, display playlists by the author of the chosen
+        # playlists. If the user doesn't ask, show the author's main video page
+        # instead.
+        if [ "${INPUT_ARG2}" = "playlists" ] || [ "${INPUT_ARG2}" = "p" ]; then
+          youtube-viewer --resolution=${RESOLUTION} --user-pl \
+            $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
+        else
+          youtube-viewer --resolution=${RESOLUTION} --user \
+            $(cut -f 4 ${FEED_FILE} | sed -n ${INPUT}p)
+        fi
+        echo ""
+        continue
+      ;;
+    download|d)
+      # Pretty simple command. Download the file to $PWD if the user asks us to.
+      # Eventually, we should add support for yv --download --ffmpeg-command.
+      youtube-viewer --download $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+      continue
+    ;;
+    esac
+
+    # These commands are separate from the above because they don't rely on
+    # secondary arguments (INPUT_ARG1, etc.).
+    case "${INPUT}" in
+      x)
+        exit
+      ;;
+      next|n)
+        # Go to next page.
+        PAGE=$(( PAGE + 1 ))
+        if [ ${PAGE} -gt ${TOTAL_PAGES} ]; then
+          PAGE=${TOTAL_PAGES}
+        fi
+        continue
+      ;;
+      previous|p)
+        # Go to previous page.
+        PAGE=$(( PAGE - 1 ))
+        if [ ${PAGE} -lt "1" ]; then
+          PAGE=1
+        fi
+        continue
+      ;;
+      reso|r)
+        # This is a resolution picker. The default comes from the user's
+        # youtube-viewer.conf.
+        echo "${BOLD}Current resolution: ${RESOLUTION}. Enter a new resolution:${RESET_COLOR}"
+        echo -n " > "
+        read NEWRES
+        case "${NEWRES}" in
+          original|1080|720|480|360|340|240|240|180|144|audio)
+            RESOLUTION=${NEWRES}
+          ;;
+          *)
+          echo "${BOLD_YELLOW}Not changing resolution.${RESET_COLOR}"
+          ;;
+        esac
+        continue
+      ;;
+      help|h)
+        cat << EOF
 Valid commands:
  - <number>: play a video. <number> refers to an item number in the vid list.
  - <number> info: query youtube-viewer for info on video <number>.
@@ -388,35 +458,39 @@ Valid commands:
  - x: exit without updating the lastrun file.
 
 EOF
-			# We add a prompt here so that the help isn't lost above the list of videos.
-			echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
-			# If read is specified without a variable, dash complains. We use unusedvar for that.
-			read unusedvar
-			continue
-		elif [ "${INPUT}" = "q" ] || [ "${INPUT}" = "quit" ]; then
-			# Reset all relevant variables and return to the first prompt.
-			unset INPUT
-			unset OUTPUT
+        # We add a prompt here so that the help isn't lost above the list of
+        # videos.
+        echo "${BOLD}Press Enter to continue.${RESET_COLOR}"
+        # If read is specified without a variable, dash complains. We use
+        # unusedvar for that.
+        read unusedvar
+        continue
+      ;;
+      quit|q)
+        # Reset all relevant variables and return to the first prompt.
+        unset INPUT
+        unset OUTPUT
 
-			unset PAGE
-			unset TOTAL_PAGES
-			unset PAGE_MIN
-			unset PAGE_MAX
+        unset PAGE
+        unset TOTAL_PAGES
+        unset PAGE_MIN
+        unset PAGE_MAX
 
-			continue 2
-		else
-			if ! echo "${INPUT}" | egrep -q '^[0-9]+$'; then
-				echo "${RED}Syntax error${RESET_COLOR}: type 'help' for a list of valid commands."
-				continue
-			elif [ "${INPUT}" -gt $(echo "${OUTPUT}" | wc -l) ]; then
-				echo "${RED}Error${RESET_COLOR}: number out of range."
-				continue
-			fi
-			youtube-viewer --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
-		fi
-	done
-	
+        continue 2
+      ;;
+      *)
+        if ! echo "${INPUT}" | egrep -q '^[0-9]+$'; then
+          echo "${RED}Syntax error${RESET_COLOR}: type 'help' for a list of valid commands."
+          continue
+        elif [ "${INPUT}" -gt $(echo "${OUTPUT}" | wc -l) ]; then
+          echo "${RED}Error${RESET_COLOR}: number out of range."
+          continue
+        fi
+        youtube-viewer --resolution=${RESOLUTION} $(cut -f 2 ${FEED_FILE} | sed -n ${INPUT}p)
+      ;;
+    esac
+  done
 done
 
-# Update the lastrun file. Set the file to a few days ago and comment out this line if you are debugging "new".
+# Update the lastrun file.
 echo ${DATE} > ${CLIENT_DIR}/lastrun
