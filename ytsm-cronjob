@@ -72,19 +72,19 @@ for i in $(seq 1 $(echo "${STRIPPED_SUBS}" | wc -l)); do
       # reduce network strain.
       YTDL_STR=$(youtube-dl --get-filename -o "%(upload_date)s %(title)s" \
           ${URL})
-      VID_DATE=$(echo "${YTDL_STR}" | cut -c -8)
-      NAME=$(echo "${YTDL_STR}" | cut -c 10-)
+      VID_DATE=$(echo "${YTDL_STR}" | cut -d ' ' -f 1)
+      NAME=$(echo "${YTDL_STR}" | cut -d ' ' -f 2-)
 
       # Error checking.
       # Fall back on the system date if the upload date isn't present.
-      if [ -z "${VID_DATE}" ]; then
+      if [ "${VID_DATE}" = "NA" ]; then
         VID_DATE="${DATE}"
       fi
       # Log a basic but informative error in the feed file.
       if [ -z "${NAME}" ]; then
         NAME="(ytsm failed to get title)"
       fi
-      echo "${VID_DATE}\t${URL}\t${NAME}\t${UPLOADER}" >> ${DATA_DIR}/${UPLOADER}
+      printf "${VID_DATE}\t${URL}\t${NAME}\t${UPLOADER}\n" >> ${DATA_DIR}/${UPLOADER}
     fi
 
     # Prints a dot for each video processed.
